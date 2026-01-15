@@ -1,0 +1,258 @@
+import { Transaction } from '@mysten/sui/transactions'
+import { CLOCK_OBJECT_ID, MEDICAL_VAULT_PACKAGE_ID, WHITELIST_REGISTRY } from '../utils/constants'
+
+/**
+ * Transaction signing utilities for Sui wallet integration
+ */
+
+/**
+ * Sign and execute a transaction with user's wallet
+ * @param {Object} signAndExecuteTransaction - From useSignAndExecuteTransaction hook
+ * @param {Transaction} tx - Transaction object to sign
+ * @returns {Promise<Object>} Transaction result
+ */
+export async function signAndExecute(signAndExecuteTransaction, tx) {
+  try {
+    const result = await signAndExecuteTransaction({
+      transaction: tx,
+      options: {
+        showEffects: true,
+        showObjectChanges: true,
+      },
+    })
+    
+    return {
+      success: true,
+      digest: result.digest,
+      effects: result.effects,
+      objectChanges: result.objectChanges,
+    }
+  } catch (error) {
+    console.error('Transaction signing failed:', error)
+    throw new Error(error.message || 'Failed to sign transaction')
+  }
+}
+
+/**
+ * Create whitelist with wallet signing - calls contract directly
+ * @param {Object} params
+ * @param {Function} params.signAndExecuteTransaction - Sui wallet sign function
+ * @param {string} params.label - Whitelist label/name
+ * @returns {Promise<Object>} Created whitelist info
+ */
+export async function createWhitelistWithWallet({ signAndExecuteTransaction, label }) {
+  try {
+    // Create transaction to call contract directly
+    const transaction = new Transaction()
+    console.log('WhitelistPackage:', MEDICAL_VAULT_PACKAGE_ID)
+    console.log('WhitelistRegistry:', WHITELIST_REGISTRY)
+    // Call create_whitelist function on contract
+    transaction.moveCall({
+      target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::create_whitelist`,
+      arguments: [
+        transaction.object(WHITELIST_REGISTRY), // registry: &mut WhitelistRegistry
+        transaction.pure.string(label), // name: vector<u8>
+        transaction.object(CLOCK_OBJECT_ID), // clock: &Clock
+        // ctx: &mut TxContext is automatically provided
+      ],
+    })
+
+    // Sign and execute with wallet
+    const result = await signAndExecute(signAndExecuteTransaction, transaction)
+    console.log('Create whitelist transaction result:', result)
+    // Extract whitelist ID and admin cap from object changes
+    const whitelistId = extractObjectId(result.objectChanges, 'SealWhitelist')
+    const adminCapId = extractObjectId(result.objectChanges, 'WhitelistAdminCap')
+
+    if (!whitelistId) {
+      throw new Error('Failed to extract whitelist ID from transaction')
+    }
+
+    return {
+      success: true,
+      whitelistId,
+      // adminCapId,
+      digest: result.digest,
+      explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+    }
+  } catch (error) {
+    console.error('Create whitelist failed:', error)
+    throw error
+  }
+}
+
+/**
+ * Extract object ID from transaction object changes
+ */
+function extractObjectId(objectChanges, objectType) {
+  const created = objectChanges?.find(
+    change => change.type === 'created' && change.objectType?.includes(objectType)
+  )
+  return created?.objectId
+}
+
+/**
+ * Add doctor with wallet signing - calls contract directly
+ */
+export async function addDoctorWithWallet({ 
+  signAndExecuteTransaction, 
+  whitelistId, 
+  doctor, 
+  whitelistCapId 
+}) {
+  try {
+    // Create transaction to call contract directly
+    const tx = new Transaction()
+    console.log('Adding doctor to whitelist:', { whitelistId, doctor, whitelistCapId })
+
+    // Call add_doctor function on contract
+    tx.moveCall({
+      target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::add_doctor`,
+      arguments: [
+        tx.object(WHITELIST_REGISTRY), // registry: &mut WhitelistRegistry
+        tx.object(whitelistId), // whitelist: &mut SealWhitelist
+        tx.object(whitelistCapId), // cap: &WhitelistAdminCap
+        tx.pure.address(doctor), // doctor: address
+        tx.object(CLOCK_OBJECT_ID), // clock: &Clock
+      ],
+    })
+
+    // Sign and execute with wallet
+    const result = await signAndExecute(signAndExecuteTransaction, tx)
+
+    return {
+      success: true,
+      digest: result.digest,
+      explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+    }
+  } catch (error) {
+    console.error('Add doctor failed:', error)
+    throw new Error(error.message || 'Failed to add doctor')
+  }
+}
+
+/**
+ * Add member with wallet signing - calls contract directly
+ */
+export async function addMemberWithWallet({ 
+  signAndExecuteTransaction, 
+  whitelistId, 
+  member, 
+  whitelistCapId 
+}) {
+  try {
+    // Create transaction to call contract directly
+    const tx = new Transaction()
+
+    // Call add_member function on contract
+    tx.moveCall({
+      target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::add_member`,
+      arguments: [
+        tx.object(WHITELIST_REGISTRY), // registry: &mut WhitelistRegistry
+        tx.object(whitelistId), // whitelist: &mut SealWhitelist
+        tx.object(whitelistCapId), // cap: &WhitelistAdminCap
+        tx.pure.address(member), // member: address
+        tx.object(CLOCK_OBJECT_ID), // clock: &Clock
+      ],
+    })
+
+    // Sign and execute with wallet
+    const result = await signAndExecute(signAndExecuteTransaction, tx)
+
+    return {
+      success: true,
+      digest: result.digest,
+      explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+    }
+  } catch (error) {
+    console.error('Add member failed:', error)
+    throw new Error(error.message || 'Failed to add member')
+  }
+}
+
+/**
+ * Remove doctor with wallet signing - calls contract directly
+ */
+export async function removeDoctorWithWallet({ 
+  signAndExecuteTransaction, 
+  whitelistId, 
+  doctor, 
+  whitelistCapId 
+}) {
+  try {
+    // Create transaction to call contract directly
+    const tx = new Transaction()
+
+    // Call remove_doctor function on contract
+    tx.moveCall({
+      target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::remove_doctor`,
+      arguments: [
+        tx.object(WHITELIST_REGISTRY), // registry: &mut WhitelistRegistry
+        tx.object(whitelistId), // whitelist: &mut SealWhitelist
+        tx.object(whitelistCapId), // cap: &WhitelistAdminCap
+        tx.pure.address(doctor), // doctor: address
+        tx.object(CLOCK_OBJECT_ID), // clock: &Clock
+      ],
+    })
+
+    // Sign and execute with wallet
+    const result = await signAndExecute(signAndExecuteTransaction, tx)
+
+    return {
+      success: true,
+      digest: result.digest,
+      explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+    }
+  } catch (error) {
+    console.error('Remove doctor failed:', error)
+    throw new Error(error.message || 'Failed to remove doctor')
+  }
+}
+
+/**
+ * Remove member with wallet signing - calls contract directly
+ */
+export async function removeMemberWithWallet({ 
+  signAndExecuteTransaction, 
+  whitelistId, 
+  member, 
+  whitelistCapId 
+}) {
+  try {
+    // Create transaction to call contract directly
+    const tx = new Transaction()
+
+    // Call remove_member function on contract
+    tx.moveCall({
+      target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::remove_member`,
+      arguments: [
+        tx.object(WHITELIST_REGISTRY), // registry: &mut WhitelistRegistry
+        tx.object(whitelistId), // whitelist: &mut SealWhitelist
+        tx.object(whitelistCapId), // cap: &WhitelistAdminCap
+        tx.pure.address(member), // member: address
+        tx.object(CLOCK_OBJECT_ID), // clock: &Clock
+      ],
+    })
+
+    // Sign and execute with wallet
+    const result = await signAndExecute(signAndExecuteTransaction, tx)
+
+    return {
+      success: true,
+      digest: result.digest,
+      explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+    }
+  } catch (error) {
+    console.error('Remove member failed:', error)
+    throw new Error(error.message || 'Failed to remove member')
+  }
+}
+
+export default {
+  signAndExecute,
+  createWhitelistWithWallet,
+  addDoctorWithWallet,
+  addMemberWithWallet,
+  removeDoctorWithWallet,
+  removeMemberWithWallet,
+}

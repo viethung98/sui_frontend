@@ -14,6 +14,7 @@ export default function Header() {
     { name: 'Home', href: '/' },
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Records', href: '/records' },
+    { name: 'AI & Monetization', href: '/ai-monetization' },
     // { name: 'Access Control', href: '/access' },
   ]
 

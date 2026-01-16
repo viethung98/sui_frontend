@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import AccessControlPage from './pages/AccessControlPage'
+import AIMonetizationPage from './pages/AIMonetizationPage'
 import DashboardPage from './pages/DashboardPage'
 import HomePage from './pages/HomePage'
 import RecordsPage from './pages/RecordsPage'
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/records" element={<RecordsPage />} />
                 <Route path="/access" element={<AccessControlPage />} />
+                <Route path="/ai-monetization" element={<AIMonetizationPage />} />
               </Routes>
             </Layout>
           </Router>

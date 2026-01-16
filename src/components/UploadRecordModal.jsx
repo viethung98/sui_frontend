@@ -89,7 +89,7 @@ export default function UploadRecordModal({
 
       if (uploadResponse.digest && !uploadResponse.transactionBlockBytes) {
         setSuccess({
-          recordId: uploadResponse.recordId,
+          recordId: uploadResponse.objectId,
           digest: uploadResponse.digest,
           explorerUrl: uploadResponse.explorerUrl
         })
@@ -120,7 +120,7 @@ export default function UploadRecordModal({
 
       // Show success immediately after transaction confirmed
       setSuccess({
-        recordId: uploadResponse.pendingRecordId || uploadResponse.recordId,
+        recordId: uploadResponse.pendingRecordId || uploadResponse.objectId,
         digest: result.digest,
         explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`
       })
@@ -128,7 +128,7 @@ export default function UploadRecordModal({
 
       if (onSuccess) {
         onSuccess({
-          recordId: uploadResponse.pendingRecordId || uploadResponse.recordId,
+          recordId: uploadResponse.pendingRecordId || uploadResponse.objectId,
           digest: result.digest,
           explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`
         })

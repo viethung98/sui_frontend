@@ -1,8 +1,9 @@
 import { useCurrentAccount } from '@mysten/dapp-kit'
-import { AlertCircle, Download, FileText, Filter, Folder, Loader2, Plus, Search, Upload } from 'lucide-react'
+import { AlertCircle, Download, Eye, FileText, Filter, Folder, Loader2, Plus, Search, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import DownloadRecordModal from '../components/DownloadRecordModal'
 import UploadRecordModal from '../components/UploadRecordModal'
+import ViewRecordModal from '../components/ViewRecordModal'
 import api from '../services/api'
 import { DOC_TYPE_NAMES } from '../utils/constants'
 import { formatRelativeTime } from '../utils/helpers'
@@ -16,8 +17,11 @@ export default function RecordsPage() {
   const [error, setError] = useState(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showDownloadModal, setShowDownloadModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
   const [downloadRecord, setDownloadRecord] = useState(null)
+  const [viewRecord, setViewRecord] = useState(null)
   const [downloadFileIndex, setDownloadFileIndex] = useState(0)
+  const [viewFileIndex, setViewFileIndex] = useState(0)
   const [selectedWhitelistId, setSelectedWhitelistId] = useState(null)
 
   useEffect(() => {
@@ -90,11 +94,17 @@ export default function RecordsPage() {
     setShowDownloadModal(true)
   }
 
+  const handleViewRecord = (record, fileIndex) => {
+    setViewRecord(record)
+    setViewFileIndex(fileIndex)
+    setShowViewModal(true)
+  }
+
   const filteredRecords = allRecords.filter(record => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
     return (
-      record.recordId.toLowerCase().includes(query) ||
+      record.objectId.toLowerCase().includes(query) ||
       record.whitelistLabel?.toLowerCase().includes(query) ||
       record.docTypes?.some(type => DOC_TYPE_NAMES[type]?.toLowerCase().includes(query))
     )
@@ -248,7 +258,7 @@ export default function RecordsPage() {
                 <div className="divide-y divide-border-light dark:divide-border-dark">
                   {records.map((record) => (
                     <div
-                      key={record.recordId}
+                      key={record.objectId}
                       className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200"
                     >
                       <div className="flex items-start justify-between">
@@ -258,7 +268,7 @@ export default function RecordsPage() {
                           </div>
                           <div className="flex-1">
                             <h4 className="font-medium text-text-light dark:text-text-dark mb-1">
-                              Record {record.recordId ? `${record.recordId.slice(0, 8)}...` : 'N/A'}
+                              Record {record.objectId ? `${record.objectId.slice(0, 8)}...` : 'N/A'}
                             </h4>
                             <div className="flex flex-wrap gap-2 mb-2">
                               {record.docTypes?.map((type, idx) => (
@@ -277,13 +287,22 @@ export default function RecordsPage() {
                             </div>
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleDownloadRecord(record, 0)}
-                          className="inline-flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 cursor-pointer text-sm"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleViewRecord(record, 0)}
+                            className="inline-flex items-center px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200 cursor-pointer text-sm"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleDownloadRecord(record, 0)}
+                            className="inline-flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 cursor-pointer text-sm"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -303,6 +322,19 @@ export default function RecordsPage() {
           onClose={() => {
             setShowUploadModal(false)
             setSelectedWhitelistId(null)
+          }}
+        />
+      )}
+
+      {/* View Record Modal */}
+      {showViewModal && viewRecord && (
+        <ViewRecordModal
+          record={viewRecord}
+          fileIndex={viewFileIndex}
+          requesterAddress={currentAccount.address}
+          onClose={() => {
+            setShowViewModal(false)
+            setViewRecord(null)
           }}
         />
       )}

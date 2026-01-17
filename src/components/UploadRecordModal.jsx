@@ -4,6 +4,7 @@ import { CheckCircle, FileText, Loader2, Upload, X, XCircle } from 'lucide-react
 import { useState } from 'react'
 import api from '../services/api'
 import { DOC_TYPE_NAMES } from '../utils/constants'
+import { detectDocTypeFromFile } from '../utils/files'
 
 /**
  * Modal for uploading medical records with wallet signing
@@ -28,21 +29,27 @@ export default function UploadRecordModal({
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files)
+
     if (selectedFiles.length > 10) {
       setError('Maximum 10 files allowed')
       return
     }
-    
-    // Check file sizes (100MB each)
-    const invalidFiles = selectedFiles.filter(f => f.size > 100 * 1024 * 1024)
+
+    const invalidFiles = selectedFiles.filter(
+      f => f.size > 100 * 1024 * 1024
+    )
     if (invalidFiles.length > 0) {
       setError('Each file must be under 100MB')
       return
     }
-    
+
     setFiles(selectedFiles)
-    // Initialize doc types with default value (4 = Other)
-    setDocTypes(selectedFiles.map(() => 4))
+
+    const detectedDocTypes = selectedFiles.map(file =>
+      detectDocTypeFromFile(file)
+    )
+
+    setDocTypes(detectedDocTypes)
     setError(null)
   }
 

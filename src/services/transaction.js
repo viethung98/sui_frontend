@@ -1,5 +1,5 @@
-import { Transaction } from '@mysten/sui/transactions'
-import { CLOCK_OBJECT_ID, MEDICAL_VAULT_PACKAGE_ID, WHITELIST_REGISTRY } from '../utils/constants'
+import { Transaction } from '@mysten/sui/transactions';
+import { CLOCK_OBJECT_ID, MEDICAL_VAULT_PACKAGE_ID, WHITELIST_REGISTRY } from '../utils/constants';
 
 /**
  * Transaction signing utilities for Sui wallet integration
@@ -19,17 +19,17 @@ export async function signAndExecute(signAndExecuteTransaction, tx) {
         showEffects: true,
         showObjectChanges: true,
       },
-    })
-    
+    });
+
     return {
       success: true,
       digest: result.digest,
       effects: result.effects,
       objectChanges: result.objectChanges,
-    }
+    };
   } catch (error) {
-    console.error('Transaction signing failed:', error)
-    throw new Error(error.message || 'Failed to sign transaction')
+    console.error('Transaction signing failed:', error);
+    throw new Error(error.message || 'Failed to sign transaction');
   }
 }
 
@@ -43,9 +43,7 @@ export async function signAndExecute(signAndExecuteTransaction, tx) {
 export async function createWhitelistWithWallet({ signAndExecuteTransaction, label }) {
   try {
     // Create transaction to call contract directly
-    const transaction = new Transaction()
-    console.log('WhitelistPackage:', MEDICAL_VAULT_PACKAGE_ID)
-    console.log('WhitelistRegistry:', WHITELIST_REGISTRY)
+    const transaction = new Transaction();
     // Call create_whitelist function on contract
     transaction.moveCall({
       target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::create_whitelist`,
@@ -55,17 +53,17 @@ export async function createWhitelistWithWallet({ signAndExecuteTransaction, lab
         transaction.object(CLOCK_OBJECT_ID), // clock: &Clock
         // ctx: &mut TxContext is automatically provided
       ],
-    })
+    });
 
     // Sign and execute with wallet
-    const result = await signAndExecute(signAndExecuteTransaction, transaction)
-    console.log('Create whitelist transaction result:', result)
+    const result = await signAndExecute(signAndExecuteTransaction, transaction);
+    console.log('Create whitelist transaction result:', result);
     // Extract whitelist ID and admin cap from object changes
-    const whitelistId = extractObjectId(result.objectChanges, 'SealWhitelist')
-    const adminCapId = extractObjectId(result.objectChanges, 'WhitelistAdminCap')
+    const whitelistId = extractObjectId(result.objectChanges, 'SealWhitelist');
+    const adminCapId = extractObjectId(result.objectChanges, 'WhitelistAdminCap');
 
     if (!whitelistId) {
-      throw new Error('Failed to extract whitelist ID from transaction')
+      throw new Error('Failed to extract whitelist ID from transaction');
     }
 
     return {
@@ -74,10 +72,10 @@ export async function createWhitelistWithWallet({ signAndExecuteTransaction, lab
       // adminCapId,
       digest: result.digest,
       explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
-    }
+    };
   } catch (error) {
-    console.error('Create whitelist failed:', error)
-    throw error
+    console.error('Create whitelist failed:', error);
+    throw error;
   }
 }
 
@@ -86,24 +84,24 @@ export async function createWhitelistWithWallet({ signAndExecuteTransaction, lab
  */
 function extractObjectId(objectChanges, objectType) {
   const created = objectChanges?.find(
-    change => change.type === 'created' && change.objectType?.includes(objectType)
-  )
-  return created?.objectId
+    (change) => change.type === 'created' && change.objectType?.includes(objectType),
+  );
+  return created?.objectId;
 }
 
 /**
  * Add doctor with wallet signing - calls contract directly
  */
-export async function addDoctorWithWallet({ 
-  signAndExecuteTransaction, 
-  whitelistId, 
-  doctor, 
-  whitelistCapId 
+export async function addDoctorWithWallet({
+  signAndExecuteTransaction,
+  whitelistId,
+  doctor,
+  whitelistCapId,
 }) {
   try {
     // Create transaction to call contract directly
-    const tx = new Transaction()
-    console.log('Adding doctor to whitelist:', { whitelistId, doctor, whitelistCapId })
+    const tx = new Transaction();
+    console.log('Adding doctor to whitelist:', { whitelistId, doctor, whitelistCapId });
 
     // Call add_doctor function on contract
     tx.moveCall({
@@ -115,34 +113,34 @@ export async function addDoctorWithWallet({
         tx.pure.address(doctor), // doctor: address
         tx.object(CLOCK_OBJECT_ID), // clock: &Clock
       ],
-    })
+    });
 
     // Sign and execute with wallet
-    const result = await signAndExecute(signAndExecuteTransaction, tx)
+    const result = await signAndExecute(signAndExecuteTransaction, tx);
 
     return {
       success: true,
       digest: result.digest,
       explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
-    }
+    };
   } catch (error) {
-    console.error('Add doctor failed:', error)
-    throw new Error(error.message || 'Failed to add doctor')
+    console.error('Add doctor failed:', error);
+    throw new Error(error.message || 'Failed to add doctor');
   }
 }
 
 /**
  * Add member with wallet signing - calls contract directly
  */
-export async function addMemberWithWallet({ 
-  signAndExecuteTransaction, 
-  whitelistId, 
-  member, 
-  whitelistCapId 
+export async function addMemberWithWallet({
+  signAndExecuteTransaction,
+  whitelistId,
+  member,
+  whitelistCapId,
 }) {
   try {
     // Create transaction to call contract directly
-    const tx = new Transaction()
+    const tx = new Transaction();
 
     // Call add_member function on contract
     tx.moveCall({
@@ -154,35 +152,35 @@ export async function addMemberWithWallet({
         tx.pure.address(member), // member: address
         tx.object(CLOCK_OBJECT_ID), // clock: &Clock
       ],
-    })
+    });
 
     // Sign and execute with wallet
-    const result = await signAndExecute(signAndExecuteTransaction, tx)
+    const result = await signAndExecute(signAndExecuteTransaction, tx);
 
     return {
       success: true,
       digest: result.digest,
       explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
-    }
+    };
   } catch (error) {
-    console.error('Add member failed:', error)
-    throw new Error(error.message || 'Failed to add member')
+    console.error('Add member failed:', error);
+    throw new Error(error.message || 'Failed to add member');
   }
 }
 
 /**
  * Remove doctor with wallet signing - calls contract directly
  */
-export async function removeDoctorWithWallet({ 
-  signAndExecuteTransaction, 
-  whitelistId, 
-  doctor, 
-  whitelistCapId 
+export async function removeDoctorWithWallet({
+  signAndExecuteTransaction,
+  whitelistId,
+  doctor,
+  whitelistCapId,
 }) {
   try {
     // Create transaction to call contract directly
-    const tx = new Transaction()
-
+    const tx = new Transaction();
+    console.log('Removing doctor from whitelist:', { whitelistId, doctor, whitelistCapId });
     // Call remove_doctor function on contract
     tx.moveCall({
       target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::remove_doctor`,
@@ -193,34 +191,34 @@ export async function removeDoctorWithWallet({
         tx.pure.address(doctor), // doctor: address
         tx.object(CLOCK_OBJECT_ID), // clock: &Clock
       ],
-    })
+    });
 
     // Sign and execute with wallet
-    const result = await signAndExecute(signAndExecuteTransaction, tx)
+    const result = await signAndExecute(signAndExecuteTransaction, tx);
 
     return {
       success: true,
       digest: result.digest,
       explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
-    }
+    };
   } catch (error) {
-    console.error('Remove doctor failed:', error)
-    throw new Error(error.message || 'Failed to remove doctor')
+    console.error('Remove doctor failed:', error);
+    throw new Error(error.message || 'Failed to remove doctor');
   }
 }
 
 /**
  * Remove member with wallet signing - calls contract directly
  */
-export async function removeMemberWithWallet({ 
-  signAndExecuteTransaction, 
-  whitelistId, 
-  member, 
-  whitelistCapId 
+export async function removeMemberWithWallet({
+  signAndExecuteTransaction,
+  whitelistId,
+  member,
+  whitelistCapId,
 }) {
   try {
     // Create transaction to call contract directly
-    const tx = new Transaction()
+    const tx = new Transaction();
 
     // Call remove_member function on contract
     tx.moveCall({
@@ -232,19 +230,19 @@ export async function removeMemberWithWallet({
         tx.pure.address(member), // member: address
         tx.object(CLOCK_OBJECT_ID), // clock: &Clock
       ],
-    })
+    });
 
     // Sign and execute with wallet
-    const result = await signAndExecute(signAndExecuteTransaction, tx)
+    const result = await signAndExecute(signAndExecuteTransaction, tx);
 
     return {
       success: true,
       digest: result.digest,
       explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
-    }
+    };
   } catch (error) {
-    console.error('Remove member failed:', error)
-    throw new Error(error.message || 'Failed to remove member')
+    console.error('Remove member failed:', error);
+    throw new Error(error.message || 'Failed to remove member');
   }
 }
 
@@ -255,4 +253,4 @@ export default {
   addMemberWithWallet,
   removeDoctorWithWallet,
   removeMemberWithWallet,
-}
+};

@@ -183,3 +183,43 @@ export function getRoleBadgeColor(role) {
   }
   return colors[role] || colors[255]
 }
+
+/**
+ * Format a timestamp (ms or s) to a readable string (e.g. 2026-01-14 15:07:36)
+ * @param {number|string} timestamp - Unix timestamp in ms or s
+ * @returns {string} Formatted date string
+ */
+export function formatTimestamp(timestamp) {
+  let ts = Number(timestamp)
+  if (ts < 1e12) ts = ts * 1000 // convert seconds to ms if needed
+  const date = new Date(ts)
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  const ss = String(date.getSeconds()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
+}
+
+
+export function base64ToUint8Array(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
+}
+
+export function bufferToUint8Array(bufferLike) {
+  if (bufferLike instanceof Uint8Array) return bufferLike
+
+  if (bufferLike?.type === 'Buffer' && Array.isArray(bufferLike.data)) {
+    return new Uint8Array(bufferLike.data)
+  }
+
+  throw new Error('Invalid decryptedData format')
+}

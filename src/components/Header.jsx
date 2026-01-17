@@ -2,6 +2,7 @@ import { Key, Menu, Shield, X } from 'lucide-react'
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import DarkModeToggle from './DarkModeToggle'
+import GoogleLoginButton from './GoogleLoginButton'
 import SetupKeyModal from './SetupKeyModal'
 import WalletButton from './WalletButton'
 
@@ -62,6 +63,7 @@ export default function Header() {
                 <Key className="w-4 h-4" />
               </button>
               <DarkModeToggle />
+              <GoogleLoginButton />
               <WalletButton />
               <button
                 type="button"

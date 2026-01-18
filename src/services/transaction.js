@@ -65,7 +65,7 @@ export async function createWhitelistWithWallet({
 
     return {
       success: true,
-      whitelistId,
+      // whitelistId,
       // adminCapId,
       digest: result.digest,
       explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,

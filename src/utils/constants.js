@@ -14,10 +14,10 @@ export const WALRUS_AGGREGATOR_URL =
 // Contract Addresses
 export const MEDICAL_VAULT_PACKAGE_ID =
   import.meta.env.VITE_PACKAGE_ID ||
-  '0xf9fb4dbe0268bb271b7621b07bd48ef3e90ea7adcee65176bfae04211b85edb1';
+  '0x1d10a3f87bdba6e54d2d09f7d708d5f9c6b3160b2599f5f01b18012eff8cb41e';
 export const WHITELIST_REGISTRY =
   import.meta.env.VITE_WHITELIST_REGISTRY ||
-  '0xb2c52cd937fd42b9fe5ef4565c80a966622134cfcdc1db77bc14ecc2db43e8dd';
+  '0x7ed4009d46b33640fbec870a7af8bce18175f06ddb9134115e27ca64b4e07e4d';
 export const CLOCK_OBJECT_ID = '0x6';
 
 // Access Control Roles

@@ -43,7 +43,7 @@ export default function UploadRecordModal({
 
     setFiles(selectedFiles);
 
-    const detectedDocTypes = []
+    const detectedDocTypes = [];
     for (const file of selectedFiles) {
       const type = detectDocTypeFromFile(file);
       detectedDocTypes.push(type);
@@ -115,7 +115,8 @@ export default function UploadRecordModal({
       }
 
       setStep('signing');
-      const txBlock = Transaction.from(uploadResponse.transactionBlockBytes);
+      const txBytes = new Uint8Array(uploadResponse.transactionBlockBytes);
+      const txBlock = Transaction.from(txBytes);
       const result = await signAndExecuteTransaction({
         transaction: txBlock,
         options: {

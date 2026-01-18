@@ -5,16 +5,22 @@ import DarkModeToggle from './DarkModeToggle'
 import GoogleLoginButton from './GoogleLoginButton'
 import SetupKeyModal from './SetupKeyModal'
 import WalletButton from './WalletButton'
+import { useDarkMode } from '../hooks'
+import IconMain from "../../public/images/Logos/Icon-main.png";
+import IconDark from "../../public/images/Logos/Icon-white.png";
+
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
-  const [showSetupKey, setShowSetupKey] = React.useState(false)
+  const [showSetupKey, setShowSetupKey] = React.useState(false);
+  const [isDarkMode] = useDarkMode();
   const location = useLocation()
 
   const navigation = [
-    { name: 'Home', href: '/' },
+    { name: 'Home', href: '/home' },
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Records', href: '/records' },
+    { name: 'Insurance Claims', href: '/insurance-claims' },
     { name: 'AI & Monetization', href: '/ai-monetization' },
     // { name: 'Access Control', href: '/access' },
   ]
@@ -29,10 +35,16 @@ export default function Header() {
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2 group cursor-pointer">
               <div className="p-2 bg-primary-500 rounded-lg transition-colors duration-200 group-hover:bg-primary-600">
-                <Shield className="w-6 h-6 text-white" />
+                {/* <Shield className="w-6 h-6 text-white" /> */}
+                <img 
+                  key={isDarkMode ? 'dark' : 'light'} 
+                  className='w-5' 
+                  src={isDarkMode ? IconDark : IconMain} 
+                  alt="MedNG Logo" 
+                />
               </div>
               <span className="text-xl font-heading font-semibold text-text-light dark:text-text-dark">
-                Medical Vault
+                MedNG
               </span>
             </Link>
 
@@ -42,11 +54,10 @@ export default function Header() {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${
-                    isActive(item.href)
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'text-text-muted hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-light dark:hover:text-text-dark'
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${isActive(item.href)
+                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                    : 'text-text-muted hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-light dark:hover:text-text-dark'
+                    }`}
                 >
                   {item.name}
                 </Link>
@@ -63,7 +74,7 @@ export default function Header() {
                 <Key className="w-4 h-4" />
               </button>
               <DarkModeToggle />
-              <GoogleLoginButton />
+              {/* <GoogleLoginButton /> */}
               <WalletButton />
               <button
                 type="button"
@@ -89,11 +100,10 @@ export default function Header() {
                   key={item.name}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${
-                    isActive(item.href)
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'text-text-muted hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
+                  className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${isActive(item.href)
+                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                    : 'text-text-muted hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
                 >
                   {item.name}
                 </Link>
@@ -102,7 +112,7 @@ export default function Header() {
           </div>
         )}
       </nav>
-      
+
       {/* Setup Key Modal */}
       {showSetupKey && (
         <SetupKeyModal

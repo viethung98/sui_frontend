@@ -12,4 +12,8 @@ export default defineConfig({
   server: {
     port: 3001,
   },
+  optimizeDeps: {
+    exclude: ['@mysten/walrus-wasm'],
+  },
+  assetsInclude: ['**/*.wasm'],
 })

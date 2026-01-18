@@ -154,6 +154,82 @@ class ApiClient {
   }
 
   /**
+   * Upload file to Walrus (proxied through backend to avoid CORS)
+   * @param {File} file - File to upload
+   * @param {number} epochs - Number of epochs to store (default: 3)
+   * @param {string} sendTo - Address to send the Blob object to (optional)
+   * @returns {Promise<Object>} Walrus upload result with blobId
+   */
+  async uploadToWalrus(file, epochs = 3, sendTo = null) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('epochs', epochs.toString());
+    if (sendTo) {
+      formData.append('sendTo', sendTo);
+    }
+
+    const url = `${this.baseURL}/walrus/upload`;
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+        // Don't set Content-Type header, let browser set it with boundary for FormData
+      });
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ message: "Walrus upload failed" }));
+        throw new Error(error.error || error.message || "Walrus upload failed");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Walrus Upload Error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process file content through data processing endpoint
+   * @param {string} rawData - File content as string
+   * @param {string} sourceFormat - Source format (e.g., 'text', 'pdf', 'image')
+   * @param {boolean} includePhi - Whether to include PHI (Protected Health Information)
+   * @param {string} processDataUrl - Optional custom URL for process_data endpoint
+   * @returns {Promise<Object>} Processed data result
+   */
+  async processData(rawData, sourceFormat = 'text', includePhi = true, processDataUrl = null) {
+    const url = processDataUrl || 'http://3.0.207.181:3000/process_data';
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          raw_data: rawData,
+          source_format: sourceFormat,
+          include_phi: includePhi,
+        }),
+        signal: AbortSignal.timeout(60000), // 60 second timeout
+      });
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ message: "Process data failed" }));
+        throw new Error(error.error || error.message || "Process data failed");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Process Data Error:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Download and decrypt file
    */
   /**

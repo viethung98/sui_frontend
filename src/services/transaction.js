@@ -240,6 +240,97 @@ export async function removeMemberWithWallet({
   }
 }
 
+/**
+ * Create timeline entry (insurance claim) with wallet signing
+ * Directly calls create_entry function in timeline.move contract
+ * 
+ * Contract function signature:
+ * public fun create_entry(
+ *   whitelist: &mut SealWhitelist,
+ *   patient_ref: vector<u8>,
+ *   entry_type: u8,
+ *   visit_date: vector<u8>,
+ *   provider_specialty: vector<u8>,
+ *   visit_type: vector<u8>,
+ *   status: vector<u8>,
+ *   content_hash: vector<u8>,
+ *   walrus_blob_id: vector<u8>,
+ *   timestamp_ms: u64,
+ *   _clock: &Clock,
+ *   ctx: &mut TxContext,
+ * )
+ */
+export async function createTimelineEntryWithWallet({
+  signAndExecuteTransaction,
+  whitelistId,
+  patientRef,
+  entryType,
+  visitDate,
+  providerSpecialty,
+  visitType,
+  status,
+  contentHash,
+  walrusBlobId,
+  timestampMs,
+}) {
+  try {
+    console.log('Creating timeline entry - calling create_entry directly:', {
+      whitelistId,
+      entryType,
+      visitDate,
+      timestampMs,
+    });
+
+    const tx = new Transaction();
+
+    // Convert strings to bytes (as required by contract)
+    const visitDateBytes = new TextEncoder().encode(visitDate);
+    const providerSpecialtyBytes = new TextEncoder().encode(providerSpecialty || '');
+    const visitTypeBytes = new TextEncoder().encode(visitType || '');
+    const statusBytes = new TextEncoder().encode(status || 'submitted');
+    const contentHashBytes = new TextEncoder().encode(contentHash);
+
+    // Direct call to timeline::create_entry function
+    // Target: {PACKAGE_ID}::timeline::create_entry
+    tx.moveCall({
+      target: `${MEDICAL_VAULT_PACKAGE_ID}::timeline::create_entry`,
+      arguments: [
+        tx.object(whitelistId), // whitelist: &mut SealWhitelist
+        tx.pure.vector('u8', patientRef), // patient_ref: vector<u8>
+        tx.pure.u8(entryType), // entry_type: u8
+        tx.pure.vector('u8', Array.from(visitDateBytes)), // visit_date: vector<u8>
+        tx.pure.vector('u8', Array.from(providerSpecialtyBytes)), // provider_specialty: vector<u8>
+        tx.pure.vector('u8', Array.from(visitTypeBytes)), // visit_type: vector<u8>
+        tx.pure.vector('u8', Array.from(statusBytes)), // status: vector<u8>
+        tx.pure.vector('u8', Array.from(contentHashBytes)), // content_hash: vector<u8>
+        tx.pure.vector('u8', walrusBlobId), // walrus_blob_id: vector<u8>
+        tx.pure.u64(timestampMs), // timestamp_ms: u64
+        tx.object(CLOCK_OBJECT_ID), // clock: &Clock
+        // ctx: &mut TxContext is automatically provided by Sui
+      ],
+    });
+
+    console.log('Transaction prepared, signing with wallet...');
+
+    // Sign and execute with wallet
+    const result = await signAndExecute(signAndExecuteTransaction, tx);
+
+    console.log('Timeline entry created successfully:', {
+      digest: result.digest,
+      explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+    });
+
+    return {
+      success: true,
+      digest: result.digest,
+      explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+    };
+  } catch (error) {
+    console.error('Create timeline entry failed:', error);
+    throw new Error(error.message || 'Failed to create timeline entry');
+  }
+}
+
 export default {
   signAndExecute,
   createWhitelistWithWallet,
@@ -247,4 +338,5 @@ export default {
   addMemberWithWallet,
   removeDoctorWithWallet,
   removeMemberWithWallet,
+  createTimelineEntryWithWallet,
 };

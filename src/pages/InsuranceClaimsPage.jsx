@@ -1,7 +1,9 @@
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit'
-import { CheckCircle, DollarSign, FileText, Loader2, Plus, Shield, X } from 'lucide-react'
+import { CheckCircle, DollarSign, FileText, Loader2, Plus, Search, Shield, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import CreateClaimModal from '../components/CreateClaimModal'
+import { useSealWhitelistDynamicFields } from '../hooks/useSealWhitelistGraphQL'
+import { useUserRole } from '../providers/UserRoleProvider'
 import api from '../services/api'
 import { fetchAllTimelineEntries, getEntryTypeName } from '../services/timeline'
 import { createTimelineEntryWithWallet } from '../services/transaction'
@@ -14,65 +16,96 @@ export default function InsuranceClaimsPage() {
   const currentAccount = useCurrentAccount()
   const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction()
   const suiClient = useSuiClient()
+  const { role } = useUserRole()
+  const isInsurance = role === 'insurance'
+  
   const [claims, setClaims] = useState([])
   const [whitelists, setWhitelists] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedWhitelist, setSelectedWhitelist] = useState(null)
+  
+  // Search inputs for Insurance role
+  const [searchWhitelistId, setSearchWhitelistId] = useState('')
+  const [searchPatientRef, setSearchPatientRef] = useState('')
+  const [hasSearched, setHasSearched] = useState(false)
+
+  // Use GraphQL hook for Insurance role to query claims
+  const {
+    timelineEntries: graphqlTimelineEntries,
+    loading: graphqlLoading,
+    error: graphqlError,
+    refresh: refreshGraphQL,
+  } = useSealWhitelistDynamicFields(
+    isInsurance ? searchWhitelistId.trim() : null,
+    isInsurance && hasSearched ? searchPatientRef.trim() : null,
+    {
+      autoFetch: false, // We'll manually trigger with refresh
+      filterByPatientRef: true, // Filter by patient reference
+    }
+  )
 
   useEffect(() => {
-    if (currentAccount?.address && suiClient) {
+    // Only auto-load for user role, not insurance
+    if (!isInsurance && currentAccount?.address && suiClient) {
       loadClaimsData()
+    } else if (isInsurance) {
+      // For insurance, clear claims until they search
+      setClaims([])
+      setWhitelists([])
+      setHasSearched(false)
     } else {
       setLoading(false)
       setClaims([])
       setWhitelists([])
     }
-  }, [currentAccount, suiClient])
+  }, [currentAccount, suiClient, isInsurance])
 
   const loadClaimsData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Load user's whitelists (medical folders)
-      const whitelistsResponse = await api.getUserWhitelists(currentAccount.address)
-      const userWhitelists = whitelistsResponse.whitelists || []
-      setWhitelists(userWhitelists)
+      // Load user's whitelists (medical folders) - only for user role
+      if (!isInsurance) {
+        const whitelistsResponse = await api.getUserWhitelists(currentAccount.address)
+        const userWhitelists = whitelistsResponse.whitelists || []
+        setWhitelists(userWhitelists)
 
-      // Load timeline entries (claims) from blockchain
-      if (userWhitelists.length > 0) {
-        const timelineEntries = await fetchAllTimelineEntries(
-          userWhitelists,
-          currentAccount.address,
-          suiClient
-        )
-        
-        // Transform timeline entries to claim format
-        const transformedClaims = timelineEntries.map(entry => ({
-          id: entry.id,
-          whitelistId: entry.whitelistId,
-          whitelistName: entry.whitelistName,
-          visitDate: entry.visitDate,
-          visitType: entry.visitType || getEntryTypeName(entry.entryType),
-          entryType: entry.entryType,
-          providerSpecialty: entry.providerSpecialty,
-          status: entry.status || 'submitted',
-          contentHash: entry.contentHash,
-          walrusBlobId: entry.walrusBlobId,
-          createdAt: entry.createdAt,
-          revoked: entry.revoked,
-          timestampMs: entry.timestampMs,
-          transactionDigest: entry.transactionDigest,
-          // Additional fields for display
-          zkVerified: entry.contentHash ? true : false, // Consider verified if has content hash
-          claimAmount: null, // Not stored in timeline entry, can be added later
-        }))
-        
-        setClaims(transformedClaims)
-      } else {
-        setClaims([])
+        // Load timeline entries (claims) from blockchain
+        if (userWhitelists.length > 0) {
+          const timelineEntries = await fetchAllTimelineEntries(
+            userWhitelists,
+            currentAccount.address,
+            suiClient
+          )
+          
+          // Transform timeline entries to claim format
+          const transformedClaims = timelineEntries.map(entry => ({
+            id: entry.id,
+            whitelistId: entry.whitelistId,
+            whitelistName: entry.whitelistName,
+            visitDate: entry.visitDate,
+            visitType: entry.visitType || getEntryTypeName(entry.entryType),
+            entryType: entry.entryType,
+            providerSpecialty: entry.providerSpecialty,
+            status: entry.status || 'submitted',
+            contentHash: entry.contentHash,
+            walrusBlobId: entry.walrusBlobId,
+            createdAt: entry.createdAt,
+            revoked: entry.revoked,
+            timestampMs: entry.timestampMs,
+            transactionDigest: entry.transactionDigest,
+            // Additional fields for display
+            zkVerified: entry.contentHash ? true : false, // Consider verified if has content hash
+            claimAmount: null, // Not stored in timeline entry, can be added later
+          }))
+          
+          setClaims(transformedClaims)
+        } else {
+          setClaims([])
+        }
       }
 
     } catch (err) {
@@ -82,6 +115,61 @@ export default function InsuranceClaimsPage() {
       setLoading(false)
     }
   }
+
+  // Search claims for Insurance role using GraphQL hook
+  const handleSearchClaims = async () => {
+    if (!searchWhitelistId.trim() || !searchPatientRef.trim()) {
+      setError('Please enter both Whitelist ID and Patient Address')
+      return
+    }
+
+    try {
+      setError(null)
+      setHasSearched(true)
+
+      // Use the GraphQL hook's refresh method to fetch claims
+      await refreshGraphQL()
+
+      // The hook will update timelineEntries automatically
+      // We'll transform them in useEffect below
+    } catch (err) {
+      console.error('Failed to search claims:', err)
+      setError(err.message || 'Failed to search claims')
+      setClaims([])
+    }
+  }
+
+  // Transform GraphQL timeline entries to claim format when they change
+  useEffect(() => {
+    if (isInsurance && hasSearched && graphqlTimelineEntries) {
+      const transformedClaims = graphqlTimelineEntries.map(entry => ({
+        id: entry.id,
+        whitelistId: entry.objectId || searchWhitelistId.trim(),
+        whitelistName: 'Unknown Folder', // GraphQL doesn't provide whitelist name
+        visitDate: entry.visitDate || '',
+        visitType: entry.visitType || entry.entryTypeName || getEntryTypeName(entry.entryType),
+        entryType: entry.entryType,
+        providerSpecialty: entry.providerSpecialty || '',
+        status: entry.status || 'submitted',
+        contentHash: entry.contentHash || '',
+        walrusBlobId: entry.walrusBlobId || [],
+        createdAt: entry.createdAt || entry.timestampMs,
+        revoked: entry.revoked || false,
+        timestampMs: entry.timestampMs,
+        transactionDigest: null, // GraphQL doesn't provide transaction digest
+        // Additional fields for display
+        zkVerified: entry.contentHash ? true : false,
+        claimAmount: null,
+      }))
+
+      setClaims(transformedClaims)
+      setLoading(false)
+    } else if (isInsurance && hasSearched && graphqlError) {
+      setError(graphqlError.message || 'Failed to fetch claims')
+      setClaims([])
+      setLoading(false)
+    }
+  }, [isInsurance, hasSearched, graphqlTimelineEntries, graphqlError, searchWhitelistId])
 
   const handleCreateClaim = () => {
     if (whitelists.length === 0) {
@@ -166,12 +254,15 @@ export default function InsuranceClaimsPage() {
     )
   }
 
-  if (loading) {
+  // Show loading state for user role or when GraphQL is loading for insurance
+  if (loading || (isInsurance && hasSearched && graphqlLoading)) {
     return (
       <div className="mx-auto max-w-7xl">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-border-light dark:border-border-dark p-12 text-center">
           <Loader2 className="w-12 h-12 text-primary-500 animate-spin mx-auto mb-4" />
-          <p className="text-text-muted">Loading your claims...</p>
+          <p className="text-text-muted">
+            {isInsurance ? 'Searching for claims...' : 'Loading your claims...'}
+          </p>
         </div>
       </div>
     )
@@ -199,9 +290,66 @@ export default function InsuranceClaimsPage() {
       </div>
 
       {/* Error Message */}
-      {error && (
+      {(error || (isInsurance && graphqlError)) && (
         <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-          <p className="text-red-700 dark:text-red-300">{error}</p>
+          <p className="text-red-700 dark:text-red-300">
+            {isInsurance && graphqlError ? graphqlError.message : error}
+          </p>
+        </div>
+      )}
+
+      {/* Search Section for Insurance Role */}
+      {isInsurance && (
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl border border-border-light dark:border-border-dark p-6">
+          <h2 className="text-xl font-heading font-semibold text-text-light dark:text-text-dark mb-4">
+            Search Claims
+          </h2>
+          <p className="text-sm text-text-muted mb-4">
+            Enter Whitelist ID and Patient Address to search for insurance claims
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+                Whitelist ID *
+              </label>
+              <input
+                type="text"
+                value={searchWhitelistId}
+                onChange={(e) => setSearchWhitelistId(e.target.value)}
+                placeholder="Enter whitelist ID (e.g., 0x...)"
+                className="w-full p-3 border border-border-light dark:border-border-dark rounded-lg bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+                Patient Address *
+              </label>
+              <input
+                type="text"
+                value={searchPatientRef}
+                onChange={(e) => setSearchPatientRef(e.target.value)}
+                placeholder="Enter patient's Sui address (0x...)"
+                className="w-full p-3 border border-border-light dark:border-border-dark rounded-lg bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleSearchClaims}
+            disabled={graphqlLoading || !searchWhitelistId.trim() || !searchPatientRef.trim()}
+            className="inline-flex items-center px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {graphqlLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5 mr-2" />
+                Search Claims
+              </>
+            )}
+          </button>
         </div>
       )}
 
@@ -232,11 +380,11 @@ export default function InsuranceClaimsPage() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-border-light dark:border-border-dark">
         <div className="p-6 border-b border-border-light dark:border-border-dark">
           <h2 className="text-xl font-heading font-semibold text-text-light dark:text-text-dark">
-            My Claims
+            {isInsurance ? 'Search Results' : 'My Claims'}
           </h2>
         </div>
         <div className="divide-y divide-border-light dark:divide-border-dark">
-          {claims.length === 0 ? (
+          {!isInsurance && claims.length === 0 ? (
             <div className="p-12 text-center">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-text-muted">No claims found</p>
@@ -248,6 +396,18 @@ export default function InsuranceClaimsPage() {
                 <Plus className="w-5 h-5 mr-2" />
                 Create First Claim
               </button>
+            </div>
+          ) : isInsurance && !hasSearched ? (
+            <div className="p-12 text-center">
+              <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-text-muted">No search performed</p>
+              <p className="text-sm text-text-muted mt-2">Enter Whitelist ID and Patient Address above to search for claims</p>
+            </div>
+          ) : isInsurance && hasSearched && claims.length === 0 ? (
+            <div className="p-12 text-center">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-text-muted">No claims found</p>
+              <p className="text-sm text-text-muted mt-2">No claims match the search criteria</p>
             </div>
           ) : (
             claims.map((claim, index) => (

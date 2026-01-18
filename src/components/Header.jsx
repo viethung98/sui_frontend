@@ -17,7 +17,7 @@ export default function Header() {
   const location = useLocation()
 
   const navigation = [
-    { name: 'Home', href: '/home' },
+    { name: 'Home', href: '/' },
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Records', href: '/records' },
     { name: 'Insurance Claims', href: '/insurance-claims' },

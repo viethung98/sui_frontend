@@ -94,7 +94,7 @@ export default function CreateClaimModal({
         throw new Error('Selected whitelist not found')
       }
 
-      // Step 1: Process file and calculate content hash (if any)
+      // Step 1: Process file and get semantic_hash from processed data (if any)
       let walrusBlobId = new Uint8Array(0) // Empty - no Walrus storage
       let contentHash = ''
 
@@ -102,7 +102,7 @@ export default function CreateClaimModal({
         setUploadProgress(10)
         
         try {
-          // Read file for hash calculation
+          // Read file for processing
           const fileBytes = new Uint8Array(await formData.file.arrayBuffer())
           setUploadProgress(20)
 
@@ -142,17 +142,33 @@ export default function CreateClaimModal({
 
             const processedData = await api.processData(rawData, sourceFormat, true)
             console.log('File processed successfully:', processedData)
-          } catch (processError) {
-            // Log error but don't fail - processing is optional
-            console.warn('Failed to process file content (continuing):', processError)
-          }
 
-          // Calculate content hash (SHA-256) from file content
-          setUploadProgress(50)
-          const hashBuffer = await crypto.subtle.digest('SHA-256', fileBytes)
-          const hashArray = Array.from(new Uint8Array(hashBuffer))
-          contentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-          console.log('Content hash calculated:', contentHash)
+            // Extract semantic_hash from processed data response
+            // Response format: { bundle: {...}, semantic_hash: "...", ... }
+            if (processedData?.semantic_hash) {
+              contentHash = processedData.semantic_hash
+              console.log('Using semantic_hash as contentHash:', contentHash)
+            } else if (processedData?.bundle?.semantic_hash) {
+              // Handle nested structure if semantic_hash is in bundle
+              contentHash = processedData.bundle.semantic_hash
+              console.log('Using semantic_hash from bundle as contentHash:', contentHash)
+            } else {
+              // Fallback: calculate SHA-256 hash if semantic_hash not available
+              console.warn('semantic_hash not found in processed data, falling back to SHA-256')
+              const hashBuffer = await crypto.subtle.digest('SHA-256', fileBytes)
+              const hashArray = Array.from(new Uint8Array(hashBuffer))
+              contentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+              console.log('Content hash calculated (fallback):', contentHash)
+            }
+          } catch (processError) {
+            // If processing fails, fall back to SHA-256 hash
+            console.warn('Failed to process file content, using SHA-256 hash:', processError)
+            setUploadProgress(50)
+            const hashBuffer = await crypto.subtle.digest('SHA-256', fileBytes)
+            const hashArray = Array.from(new Uint8Array(hashBuffer))
+            contentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+            console.log('Content hash calculated (fallback):', contentHash)
+          }
         } catch (fileError) {
           console.error('File processing error:', fileError)
           throw new Error(`Failed to process file: ${fileError.message}`)

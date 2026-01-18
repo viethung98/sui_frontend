@@ -1360,7 +1360,7 @@ export default function IntroPage() {
 
                 if (endingTimer > 5.5) {
                     // Navigate to main page instead of external link
-                    navigate('/home');
+                    navigate('/');
                 }
             }
 

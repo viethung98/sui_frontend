@@ -43,8 +43,8 @@ function App() {
             <WalletProvider autoConnect>
               {/* <CustomWalletProvider> */}
                 <Routes>
-                  <Route path="/" element={<IntroPage />} />
-                  <Route path="/home" element={<Layout><HomePage /></Layout>} />
+                  {/* <Route path="/" element={<IntroPage />} /> */}
+                  <Route path="/" element={<Layout><HomePage /></Layout>} />
                   <Route path="/dashboard" element={<Layout><DashboardPage /></Layout>} />
                   <Route path="/records" element={<Layout><RecordsPage /></Layout>} />
                   <Route path="/access" element={<Layout><AccessControlPage /></Layout>} />

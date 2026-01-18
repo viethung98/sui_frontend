@@ -2,6 +2,8 @@ import { useCurrentAccount, useSignPersonalMessage } from '@mysten/dapp-kit'
 import { AlertCircle, Download, Eye, File, FileText, Loader2, Shield, X } from 'lucide-react'
 import { useState } from 'react'
 import api from '../services/api'
+import { base64ToUint8Array } from '../utils/helpers'
+import { docTypeToMimeType } from '../utils/files'
 
 /**
  * Modal for viewing medical records without downloading
@@ -22,55 +24,73 @@ export default function ViewRecordModal({
   const [fileType, setFileType] = useState(null)
 
   const handleView = async () => {
-    try {
-      setLoading(true)
-      setError(null)
+  try {
+    setLoading(true)
+    setError(null)
 
-      // Create message to sign
-      const message = `View medical record ${record.objectId} at ${new Date().toISOString()}`
-      
-      // Sign message with wallet
-      const { signature } = await signPersonalMessage({
-        message: new TextEncoder().encode(message),
-      })
+    // Step 1: prepare download
+    const prepareResponse = await api.prepareDownload(
+      record.objectId,
+      requesterAddress || currentAccount?.address,
+      fileIndex,
+    )
 
-      // Download and decrypt record with signature authentication
-      const blob = await api.downloadRecord(record.objectId, {
-        requesterAddress: requesterAddress,
-        fileIndex: fileIndex,
-        signature: signature,
-        message: message,
-      })
+    const { sessionId, messageBase64 } = prepareResponse.data
 
-      // Determine file type
-      const type = blob.type || 'application/octet-stream'
-      setFileType(type)
+    // Step 2: sign message
+    const messageBytes = base64ToUint8Array(messageBase64)
+    const { signature } = await signPersonalMessage({
+      message: messageBytes,
+    })
 
-      // Handle different file types
-      if (type.startsWith('text/') || type === 'application/json') {
-        // Text-based files
-        const text = await blob.text()
-        setFileContent({ type: 'text', content: text })
-      } else if (type.startsWith('image/')) {
-        // Image files
-        const url = URL.createObjectURL(blob)
-        setFileContent({ type: 'image', url: url })
-      } else if (type === 'application/pdf') {
-        // PDF files
-        const url = URL.createObjectURL(blob)
-        setFileContent({ type: 'pdf', url: url })
-      } else {
-        // Other binary files - show download option
-        const url = URL.createObjectURL(blob)
-        setFileContent({ type: 'binary', url: url, blob: blob })
-      }
-    } catch (err) {
-      console.error('View failed:', err)
-      setError(err.message || 'Failed to view record')
-    } finally {
-      setLoading(false)
+    if (!signature || typeof signature !== 'string' || !signature.trim()) {
+      throw new Error('Wallet signature is required')
     }
+
+    // Step 3: view inline
+    const blob = await api.viewRecord(
+      record.objectId,
+      sessionId,
+      signature,
+    )
+    const recordType = record.content.fields.doc_type[0] || 4;
+    const mimeType = docTypeToMimeType(recordType);
+    const url = URL.createObjectURL(blob)
+
+    setFileType(mimeType)
+
+    // Render based on file type
+    if (mimeType.startsWith('text/') || mimeType === 'application/json') {
+      const text = await blob.text()
+      setFileContent({
+        type: 'text',
+        content: text,
+      })
+    } else if (mimeType.startsWith('image/')) {
+      setFileContent({
+        type: 'image',
+        url,
+      })
+    } else if (mimeType === 'application/pdf') {
+      setFileContent({
+        type: 'pdf',
+        url,
+      })
+    } else {
+      setFileContent({
+        type: 'binary',
+        url,
+      })
+    }
+  } catch (err) {
+    console.error('View failed:', err)
+    setError(err.message || 'Failed to view record')
+  } finally {
+    setLoading(false)
   }
+}
+
+
 
   const handleDownload = () => {
     if (fileContent && fileContent.url) {
@@ -162,7 +182,7 @@ export default function ViewRecordModal({
           ) : (
             <div>
               {/* Download button when viewing */}
-              <div className="mb-4 flex justify-end">
+              {/* <div className="mb-4 flex justify-end">
                 <button
                   onClick={handleDownload}
                   className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
@@ -170,7 +190,7 @@ export default function ViewRecordModal({
                   <Download className="w-4 h-4" />
                   Download
                 </button>
-              </div>
+              </div> */}
 
               {/* Display content based on type */}
               {fileContent.type === 'text' && (

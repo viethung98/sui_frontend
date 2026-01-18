@@ -193,6 +193,35 @@ class ApiClient {
   /**
    * Step 2: Complete download with signature
    */
+  async viewRecord(recordId, sessionId, signature) {
+    const url = `${this.baseURL}/records/${recordId}/view`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId,
+          signature,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ message: "View failed" }));
+        throw new Error(error.error || error.message || "View failed");
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error("View Error:", error);
+      throw error;
+    }
+  }
+
   async completeDownload(recordId, sessionId, signature) {
     const url = `${this.baseURL}/records/${recordId}/download/complete`;
 

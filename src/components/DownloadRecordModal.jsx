@@ -1,7 +1,9 @@
-import { useCurrentAccount, useSignPersonalMessage } from '@mysten/dapp-kit'
-import { AlertCircle, CheckCircle, Download, Loader2, Shield, X } from 'lucide-react'
-import { useState } from 'react'
-import api from '../services/api'
+import { useCurrentAccount, useSignPersonalMessage } from '@mysten/dapp-kit';
+import { AlertCircle, CheckCircle, Download, Loader2, Shield, X } from 'lucide-react';
+import { useState } from 'react';
+import api from '../services/api';
+import { base64ToUint8Array } from '../utils/helpers';
+
 
 /**
  * Modal for downloading and decrypting medical records
@@ -34,11 +36,9 @@ export default function DownloadRecordModal({
       )
 
       const { sessionId, message, messageBase64 } = prepareResponse.data
-      console.log('Got session:', sessionId, 'message to sign: ', message)
       
       // Step 2: Sign message with wallet
-      console.log('Step 2: Signing message with wallet')
-      const messageBytes = new Uint8Array(message)
+      const messageBytes = base64ToUint8Array(messageBase64)
       const { signature } = await signPersonalMessage({
         message: messageBytes,
       })
@@ -47,23 +47,18 @@ export default function DownloadRecordModal({
         setLoading(false);
         return;
       }
-      console.log('Message signed successfully: ', signature)
 
       // Step 3: Complete download with signature
-      console.log('Step 3: Completing download with signature')
       const blob = await api.completeDownload(
         record.objectId,
         sessionId,
         signature
       )
-
-      console.log('Record downloaded successfully, creating download link...')
-
       // Create download link
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `medical_record_${record.objectId.slice(0, 8)}_${fileIndex}.bin`
+      a.download = `medical_record_${record.objectId.slice(0, 8)}`
       a.click()
       window.URL.revokeObjectURL(url)
 

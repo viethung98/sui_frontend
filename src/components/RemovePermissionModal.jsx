@@ -1,57 +1,56 @@
-import { useSignAndExecuteTransaction } from '@mysten/dapp-kit'
-import { AlertCircle, CheckCircle, Loader2, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
-import { removeDoctorWithWallet, removeMemberWithWallet } from '../services/transaction'
+import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { AlertCircle, CheckCircle, Loader2, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+import { removeDoctorWithWallet, removeMemberWithWallet } from '../services/transaction';
 
 /**
  * Modal for removing doctors/members from whitelist
  */
-export default function RemovePermissionModal({ 
-  whitelist, 
+export default function RemovePermissionModal({
+  whitelist,
   type = 'doctor', // 'doctor' or 'member'
   address,
-  onSuccess, 
-  onClose 
+  onSuccess,
+  onClose,
 }) {
-  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction()
-  
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
-  const isDoctor = type === 'doctor'
-  const title = isDoctor ? 'Remove Doctor' : 'Remove Member'
-  const actionFn = isDoctor ? removeDoctorWithWallet : removeMemberWithWallet
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const isDoctor = type === 'doctor';
+  const title = isDoctor ? 'Remove Doctor' : 'Remove Member';
+  const actionFn = isDoctor ? removeDoctorWithWallet : removeMemberWithWallet;
 
   const handleRemove = async () => {
     try {
-      setLoading(true)
-      setError(null)
-
+      setLoading(true);
+      setError(null);
       // Call contract directly via transaction function
       const result = await actionFn({
         signAndExecuteTransaction,
         whitelistId: whitelist.whitelistId,
         [isDoctor ? 'doctor' : 'member']: address,
-        whitelistCapId: whitelist.adminCapId,
-      })
+        whitelistCapId: whitelist.whitelistCapId,
+      });
 
-      setSuccess(result)
-      
+      setSuccess(result);
+
       if (onSuccess) {
-        onSuccess(result)
+        onSuccess(result);
       }
 
       setTimeout(() => {
-        onClose()
-      }, 2000)
+        onClose();
+      }, 2000);
     } catch (err) {
-      console.error(`Failed to remove ${type}:`, err)
-      setError(err.message || `Failed to remove ${type}`)
+      console.error(`Failed to remove ${type}:`, err);
+      setError(err.message || `Failed to remove ${type}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -156,5 +155,5 @@ export default function RemovePermissionModal({
         )}
       </div>
     </div>
-  )
+  );
 }

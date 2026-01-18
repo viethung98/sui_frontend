@@ -31,29 +31,46 @@ export const ROLE_NAMES = {
 
 // Document Types (theo backend API)
 export const DOC_TYPES = {
-  LAB_RESULT: 0,
+  LAB: 0,
   IMAGING: 1,
-  DOCTOR_NOTES: 2,
+  DOCTOR_REPORT: 2,
   PRESCRIPTION: 3,
   OTHER: 4,
-}
+};
 
 export const DOC_TYPE_NAMES = {
   0: 'Lab Result',
   1: 'Imaging',
-  2: 'Doctor Notes',
+  2: 'Doctor Report',
   3: 'Prescription',
   4: 'Other',
-}
+};
+
+export const DOC_TYPE_TO_MIME = {
+  [DOC_TYPES.LAB]: [
+    'text/csv',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ],
+  [DOC_TYPES.IMAGING]: ['image/jpeg', 'image/png', 'image/webp', 'application/dicom'],
+  [DOC_TYPES.PRESCRIPTION]: ['application/pdf', 'image/jpeg', 'image/png'],
+  [DOC_TYPES.REPORT]: [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+  ],
+  [DOC_TYPES.OTHER]: ['application/octet-stream'],
+};
 
 // Record Types (legacy - for backward compatibility)
 export const RECORD_TYPES = {
-  LAB_RESULT: 'Lab Result',
+  LAB: 'Lab Result',
   IMAGING: 'Imaging',
-  EXAMINATION: 'Doctor Notes',
+  EXAMINATION: 'Doctor Report',
   PRESCRIPTION: 'Prescription',
   OTHER: 'Other',
-}
+};
 
 // File Upload Limits
 export const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB

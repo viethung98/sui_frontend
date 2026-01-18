@@ -32,7 +32,7 @@ export const ENDPOINTS = {
 export const DOC_TYPES = {
   LAB: 0,
   IMAGING: 1,
-  NOTES: 2,
+  REPORT: 2,
   PRESCRIPTION: 3,
   OTHER: 4,
 } as const;
@@ -40,9 +40,34 @@ export const DOC_TYPES = {
 export const DOC_TYPE_LABELS = {
   [DOC_TYPES.LAB]: 'Lab Results',
   [DOC_TYPES.IMAGING]: 'Imaging',
-  [DOC_TYPES.NOTES]: 'Clinical Notes',
+  [DOC_TYPES.REPORT]: 'Clinical Report',
   [DOC_TYPES.PRESCRIPTION]: 'Prescription',
   [DOC_TYPES.OTHER]: 'Other',
+};
+
+export const DOC_TYPE = {
+  LAB_RESULT: 0,
+  IMAGING: 1,
+  PRESCRIPTION: 2,
+  REPORT: 3,
+  OTHER: 4,
+};
+
+export const DOC_TYPE_TO_MIME = {
+  [DOC_TYPES.LAB]: [
+    'text/csv',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ],
+  [DOC_TYPES.IMAGING]: ['image/jpeg', 'image/png', 'image/webp', 'application/dicom'],
+  [DOC_TYPES.PRESCRIPTION]: ['application/pdf', 'image/jpeg', 'image/png'],
+  [DOC_TYPES.REPORT]: [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+  ],
+  [DOC_TYPES.OTHER]: ['application/octet-stream'],
 };
 
 export const ROLE_TYPES = {

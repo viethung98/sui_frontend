@@ -6,7 +6,7 @@ import UploadRecordModal from '../components/UploadRecordModal'
 import ViewRecordModal from '../components/ViewRecordModal'
 import api from '../services/api'
 import { DOC_TYPE_NAMES } from '../utils/constants'
-import { formatRelativeTime } from '../utils/helpers'
+import { formatTimestamp } from '../utils/helpers'
 
 export default function RecordsPage() {
   const currentAccount = useCurrentAccount()
@@ -281,9 +281,10 @@ export default function RecordsPage() {
                               ))}
                             </div>
                             <div className="flex items-center space-x-4 text-sm text-text-muted">
-                              <span>{record.filesCount || record.walrusCids?.length || 0} files</span>
-                              <span>•</span>
-                              <span>Uploaded {formatRelativeTime(record.timestamp)}</span>
+                              {/* <span>{record.filesCount || record.walrusCids?.length || 0} files</span> */}
+                              {/* <span>•</span> */}
+                              {/* <span>Uploaded {formatRelativeTime(record.content.fields.timestamp)}</span> */}
+                              <span>Uploaded {formatTimestamp(record.content.fields.timestamp)}</span>
                             </div>
                           </div>
                         </div>

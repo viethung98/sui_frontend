@@ -207,12 +207,14 @@ export default function CreateClaimModal({
       setUploadProgress(100)
 
       if (result.success) {
+        // Call onSuccess callback immediately to trigger reload
         if (onSuccess) {
           onSuccess(result)
         }
+        // Close modal after a short delay
         setTimeout(() => {
           onClose()
-        }, 1500)
+        }, 1000)
       } else {
         throw new Error('Failed to create claim on blockchain')
       }

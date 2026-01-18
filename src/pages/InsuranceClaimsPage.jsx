@@ -95,10 +95,15 @@ export default function InsuranceClaimsPage() {
     setShowCreateModal(true)
   }
 
-  const handleClaimSuccess = () => {
+  const handleClaimSuccess = async () => {
     setShowCreateModal(false)
     setSelectedWhitelist(null)
-    loadClaimsData()
+    
+    // Wait a bit for the transaction to be indexed on-chain
+    // Then reload the claims list
+    setTimeout(async () => {
+      await loadClaimsData()
+    }, 2000) // 2 second delay to allow transaction indexing
   }
 
   // Calculate stats from claims

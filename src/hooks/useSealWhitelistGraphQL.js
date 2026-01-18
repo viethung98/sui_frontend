@@ -44,6 +44,7 @@ const SEAL_WHITELIST_QUERY = `
               bcs
             }
             ... on MoveObject {
+              address
               hasPublicTransfer
               contents {
                 ... on MoveValue {
@@ -52,6 +53,28 @@ const SEAL_WHITELIST_QUERY = `
                 }
               }
             }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const TIMELINE_ENTRY_QUERY = `
+  query GetTimelineEntry($id: SuiAddress!) {
+    object(address: $id) {
+      address
+      version
+      digest
+      type {
+        repr
+      }
+      asMoveObject {
+        hasPublicTransfer
+        contents {
+          ... on MoveValue {
+            json
+            bcs
           }
         }
       }
@@ -93,6 +116,7 @@ function parseDynamicField(field) {
   const nameJson = field.name?.json || {};
   const nameType = field.name?.type?.repr || '';
   const valueJson = field.value?.json || {};
+  const valueContentsJson = field.value?.contents?.[0]?.json || {};
   
   if (nameType.includes('TimelineEntryKey')) {
     const patientRefBytes = nameJson.patient_ref_bytes || [];
@@ -111,20 +135,23 @@ function parseDynamicField(field) {
       }
     }
     
+    const entryData = valueJson.entry_type !== undefined ? valueJson : valueContentsJson;
+    
     return {
       type: 'timeline_entry',
       key: { patientRefBytes, timestampMs },
       value: {
-        patientRefBytes: valueJson.patient_ref_bytes || [],
-        entryType: valueJson.entry_type ?? 0,
-        visitDate: valueJson.visit_date || '',
-        providerSpecialty: valueJson.provider_specialty || '',
-        visitType: valueJson.visit_type || '',
-        status: valueJson.status || '',
-        contentHash: valueJson.content_hash || '',
-        walrusBlobId: valueJson.walrus_blob_id || [],
+        objectId: field.value?.address || null,
+        patientRefBytes: entryData.patient_ref_bytes || [],
+        entryType: entryData.entry_type ?? 0,
+        visitDate: entryData.visit_date || '',
+        providerSpecialty: entryData.provider_specialty || '',
+        visitType: entryData.visit_type || '',
+        status: entryData.status || '',
+        contentHash: entryData.content_hash || '',
+        walrusBlobId: entryData.walrus_blob_id || [],
         createdAt: timestampMs,
-        revoked: valueJson.revoked || false,
+        revoked: entryData.revoked || false,
       },
       rawName: field.name,
       rawValue: field.value,
@@ -132,15 +159,17 @@ function parseDynamicField(field) {
   }
   
   if (nameType.includes('DepositPool')) {
+    const poolData = valueJson.timeline_entry_id !== undefined ? valueJson : valueContentsJson;
     return {
       type: 'deposit_pool',
       key: field.name,
       value: {
-        timelineEntryId: valueJson.timeline_entry_id || '',
-        patientRefBytes: valueJson.patient_ref_bytes || [],
-        creator: valueJson.creator || '',
-        amount: valueJson.balance || 0,
-        active: valueJson.active || false,
+        objectId: field.value?.address || null,
+        timelineEntryId: poolData.timeline_entry_id || '',
+        patientRefBytes: poolData.patient_ref_bytes || [],
+        creator: poolData.creator || '',
+        amount: poolData.balance || 0,
+        active: poolData.active || false,
       },
       rawName: field.name,
       rawValue: field.value,
@@ -191,7 +220,8 @@ export function useSealWhitelistDynamicFields(objectId, patientRef, options = {}
         .filter(f => f.type === 'timeline_entry')
         .map(f => ({
           id: `${objectId}-${f.key.timestampMs}`,
-          objectId,
+          objectId: f.value.objectId || objectId,
+          dynamicObjectId: f.value.objectId || null,
           patientRefBytes: f.key.patientRefBytes,
           timestampMs: f.key.timestampMs,
           entryType: f.value.entryType,
@@ -215,7 +245,8 @@ export function useSealWhitelistDynamicFields(objectId, patientRef, options = {}
         .filter(f => f.type === 'deposit_pool')
         .map(f => ({
           id: JSON.stringify(f.key),
-          objectId,
+          objectId: f.value.objectId || objectId,
+          dynamicObjectId: f.value.objectId || null,
           timelineEntryId: f.value.timelineEntryId,
           patientRefBytes: f.value.patientRefBytes,
           creator: f.value.creator,
@@ -271,6 +302,69 @@ export function useSealWhitelistDynamicFields(objectId, patientRef, options = {}
   };
 }
 
+export function useTimelineEntry(objectId, entryObjectId) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchEntry = useCallback(async () => {
+    if (!entryObjectId) {
+      setError(new Error('Entry Object ID is required'));
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await executeGraphQLQuery(TIMELINE_ENTRY_QUERY, { id: entryObjectId });
+      const entry = result.object;
+
+      if (!entry) {
+        throw new Error('TimelineEntry object not found');
+      }
+
+      const entryJson = entry.asMoveObject?.contents?.[0]?.json || {};
+      const entryType = entry.type?.repr || '';
+
+      const entryData = {
+        objectId: entry.address,
+        version: entry.version,
+        digest: entry.digest,
+        type: entryType,
+        patientRefBytes: entryJson.patient_ref_bytes || [],
+        entryType: entryJson.entry_type ?? 0,
+        entryTypeName: ENTRY_TYPES[entryJson.entry_type] || `type_${entryJson.entry_type}`,
+        visitDate: entryJson.visit_date || '',
+        providerSpecialty: entryJson.provider_specialty || '',
+        visitType: entryJson.visit_type || '',
+        status: entryJson.status || '',
+        contentHash: entryJson.content_hash || '',
+        walrusBlobId: entryJson.walrus_blob_id || [],
+        createdAt: entryJson.created_at || 0,
+        revoked: entryJson.revoked || false,
+        rawData: entry,
+      };
+
+      setData(entryData);
+      return entryData;
+    } catch (err) {
+      console.error('Failed to fetch TimelineEntry:', err);
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [entryObjectId]);
+
+  return {
+    data,
+    loading,
+    error,
+    refresh: fetchEntry,
+  };
+}
+
 export function useTimelineEntryFilter(objectId, patientRef) {
   const hook = useSealWhitelistDynamicFields(objectId, patientRef);
 
@@ -298,5 +392,6 @@ export function useTimelineEntryFilter(objectId, patientRef) {
 
 export default {
   useSealWhitelistDynamicFields,
+  useTimelineEntry,
   useTimelineEntryFilter,
 };

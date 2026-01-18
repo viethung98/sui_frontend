@@ -8,6 +8,7 @@ React hook for fetching SealWhitelist dynamic object fields using Sui GraphQL RP
 - Automatic patient reference hashing (blake2b256) matching Move contract logic
 - Filter entries by patient reference
 - Support for both filtered and unfiltered entry lists
+- Fetch full TimelineEntry object content by object ID
 
 ## Installation
 
@@ -80,13 +81,53 @@ function FilteredTimeline({ whitelistId, patientAddress }) {
 }
 ```
 
+### Fetch Full Entry Content
+
+```javascript
+import { useSealWhitelistDynamicFields, useTimelineEntry } from './hooks';
+
+function EntryDetail({ whitelistId }) {
+  const { allTimelineEntries, loading } = useSealWhitelistDynamicFields(whitelistId, null, {
+    autoFetch: false,
+    filterByPatientRef: false,
+  });
+
+  const { data: fullEntry, loading: entryLoading } = useTimelineEntry(
+    whitelistId,
+    selectedEntry?.dynamicObjectId
+  );
+
+  if (loading) return <Loading />;
+
+  return (
+    <div>
+      {allTimelineEntries.map(entry => (
+        <button key={entry.id} onClick={() => setSelectedEntry(entry)}>
+          View {entry.entryTypeName}
+        </button>
+      ))}
+
+      {entryLoading && <p>Loading entry details...</p>}
+      {fullEntry && (
+        <div>
+          <h3>{fullEntry.visitDate}</h3>
+          <p>Provider: {fullEntry.providerSpecialty}</p>
+          <p>Status: {fullEntry.status}</p>
+          <p>Content Hash: {fullEntry.contentHash}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
 ## API Reference
 
 ### useSealWhitelistDynamicFields(objectId, patientRef, options)
 
 **Parameters:**
 - `objectId` (string): SealWhitelist object ID
-- `patientRef` (string): Patient address for filtering
+- `patientRef` (string): Patient address for filtering (optional)
 - `options` (Object):
   - `autoFetch` (boolean): Auto-fetch on mount (default: true)
   - `filterByPatientRef` (boolean): Filter by patient ref (default: true)
@@ -108,6 +149,41 @@ function FilteredTimeline({ whitelistId, patientAddress }) {
 }
 ```
 
+### useTimelineEntry(whitelistObjectId, entryObjectId)
+
+Fetches full content of a specific TimelineEntry object.
+
+**Parameters:**
+- `whitelistObjectId` (string): Parent SealWhitelist object ID
+- `entryObjectId` (string): TimelineEntry object ID to fetch
+
+**Returns:**
+```javascript
+{
+  data: {
+    objectId: string,
+    version: number,
+    digest: string,
+    type: string,
+    patientRefBytes: Array,
+    entryType: number,
+    entryTypeName: string,
+    visitDate: string,
+    providerSpecialty: string,
+    visitType: string,
+    status: string,
+    contentHash: string,
+    walrusBlobId: Array,
+    createdAt: number,
+    revoked: boolean,
+    rawData: Object,  // Full GraphQL response
+  } | null,
+  loading: boolean,
+  error: Error | null,
+  refresh: Function,
+}
+```
+
 ### useTimelineEntryFilter(objectId, patientRef)
 
 Factory hook with filtering methods. Returns all properties from `useSealWhitelistDynamicFields` plus:
@@ -118,14 +194,15 @@ Factory hook with filtering methods. Returns all properties from `useSealWhiteli
 
 ## Data Structure
 
-### TimelineEntry
+### TimelineEntry (from dynamic fields)
 
 ```javascript
 {
-  id: string,                    // `${objectId}-${timestampMs}`
-  objectId: string,              // SealWhitelist object ID
-  patientRefBytes: Array,        // Patient reference bytes
-  timestampMs: number,           // Entry timestamp (milliseconds)
+  id: string,                    // `${whitelistObjectId}-${timestampMs}`
+  objectId: string,              // Parent SealWhitelist object ID
+  dynamicObjectId: string | null, // Actual TimelineEntry object ID (from dynamic field value)
+  patientRefBytes: Array,        // Patient reference bytes (from key)
+  timestampMs: number,           // Entry timestamp (milliseconds, from key BCS)
   entryType: number,             // 0-6 (see Entry Types)
   entryTypeName: string,         // Human-readable type name
   visitDate: string,             // YYYY-MM-DD format
@@ -134,8 +211,23 @@ Factory hook with filtering methods. Returns all properties from `useSealWhiteli
   status: string,                // Entry status
   contentHash: string,           // SHA3-256 hash
   walrusBlobId: Array,           // Walrus storage ID
-  createdAt: number,             // Creation timestamp
+  createdAt: number,             // Creation timestamp (same as timestampMs)
   revoked: boolean,              // Revocation status
+}
+```
+
+### DepositPool
+
+```javascript
+{
+  id: string,                    // JSON stringified key
+  objectId: string,              // Parent SealWhitelist object ID
+  dynamicObjectId: string | null, // Actual DepositPool object ID (from dynamic field value)
+  timelineEntryId: string,       // Linked TimelineEntry ID
+  patientRefBytes: Array,        // Patient reference bytes
+  creator: string,               // Pool creator address
+  amount: number,                // Pool balance in MIST
+  active: boolean,               // Pool status
 }
 ```
 

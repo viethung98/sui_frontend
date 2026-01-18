@@ -2,8 +2,12 @@
 export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // Contract Configuration
-export const MEDICAL_VAULT_PACKAGE_ID = (import.meta as any).env?.VITE_PACKAGE_ID || '0xc4f956117f2ea91392c8a5af2a2ba53d00afdac00801e2df7f77a0f16705dd62';
-export const WHITELIST_REGISTRY = (import.meta as any).env?.VITE_WHITELIST_REGISTRY || '0x5a8347fa5f2d9065c0e28326b73db549d4e190bcf60f01fbd3e2026f87ddf168';
+export const MEDICAL_VAULT_PACKAGE_ID =
+  (import.meta as any).env?.VITE_PACKAGE_ID ||
+  '0xf9fb4dbe0268bb271b7621b07bd48ef3e90ea7adcee65176bfae04211b85edb1';
+export const WHITELIST_REGISTRY =
+  (import.meta as any).env?.VITE_WHITELIST_REGISTRY ||
+  '0xb2c52cd937fd42b9fe5ef4565c80a966622134cfcdc1db77bc14ecc2db43e8dd';
 export const CLOCK_OBJECT_ID = '0x6';
 
 export const ENDPOINTS = {
@@ -15,16 +19,16 @@ export const ENDPOINTS = {
   GET_USER_WHITELISTS: '/whitelists/user/:address/chain',
   GET_USER_ROLE: '/whitelists/:whitelistId/role/:address',
   GET_WHITELIST: '/whitelists/:whitelistId',
-  
+
   // Records
   UPLOAD_RECORD: '/records/upload',
   GET_RECORDS: '/records/whitelist/:whitelistId',
   DOWNLOAD_FILE: '/records/:recordId/files/:fileIndex/download',
   ADD_FILES: '/records/:recordId/add-files',
-  
+
   // Export
   EXPORT_RECORDS: '/export/export',
-  
+
   // Log
   GET_AUDIT_LOGS: '/audit/:whitelistId',
 };

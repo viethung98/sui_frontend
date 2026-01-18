@@ -4,44 +4,42 @@ import { useState } from 'react';
 import api from '../services/api';
 import { base64ToUint8Array } from '../utils/helpers';
 
-
 /**
  * Modal for downloading and decrypting medical records
  * Uses wallet signature for authentication
  */
-export default function DownloadRecordModal({ 
-  record, 
+export default function DownloadRecordModal({
+  record,
   fileIndex = 0,
   requesterAddress,
-  onSuccess, 
-  onClose 
+  onSuccess,
+  onClose,
 }) {
-  const currentAccount = useCurrentAccount()
-  const { mutateAsync: signPersonalMessage } = useSignPersonalMessage()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(false)
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   const handleDownload = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       // Step 1: Prepare download - Get message to sign from backend
-      console.log('Step 1: Preparing download for record:', record.objectId)
       const prepareResponse = await api.prepareDownload(
         record.objectId,
         requesterAddress || currentAccount?.address,
-        fileIndex
-      )
+        fileIndex,
+      );
+      console.log('prepareResponse:', prepareResponse);
+      const { sessionId, message, messageBase64, mimeType, extension } = prepareResponse.data;
 
-      const { sessionId, message, messageBase64 } = prepareResponse.data
-      
       // Step 2: Sign message with wallet
-      const messageBytes = base64ToUint8Array(messageBase64)
+      const messageBytes = base64ToUint8Array(messageBase64);
       const { signature } = await signPersonalMessage({
         message: messageBytes,
-      })
+      });
       if (!signature || typeof signature !== 'string' || signature.trim() === '') {
         setError('Wallet signature is required. Please approve the signature request.');
         setLoading(false);
@@ -49,35 +47,31 @@ export default function DownloadRecordModal({
       }
 
       // Step 3: Complete download with signature
-      const blob = await api.completeDownload(
-        record.objectId,
-        sessionId,
-        signature
-      )
+      const blob = await api.completeDownload(record.objectId, sessionId, signature);
       // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `medical_record_${record.objectId.slice(0, 8)}`
-      a.click()
-      window.URL.revokeObjectURL(url)
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `medical_record_${record.objectId.slice(0, 8)}${extension}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
 
-      setSuccess(true)
-      
+      setSuccess(true);
+
       if (onSuccess) {
-        onSuccess()
+        onSuccess();
       }
 
       setTimeout(() => {
-        onClose()
-      }, 1500)
+        onClose();
+      }, 1500);
     } catch (err) {
-      console.error('Download failed:', err)
-      setError(err.message || 'Failed to download record')
+      console.error('Download failed:', err);
+      setError(err.message || 'Failed to download record');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -104,15 +98,14 @@ export default function DownloadRecordModal({
             <h3 className="text-lg font-semibold text-text-light dark:text-text-dark mb-2">
               Download Complete
             </h3>
-            <p className="text-sm text-text-muted">
-              Your file has been downloaded successfully
-            </p>
+            <p className="text-sm text-text-muted">Your file has been downloaded successfully</p>
           </div>
         ) : (
           <>
             <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <p className="text-sm text-blue-900 dark:text-blue-200">
-                <strong>Record:</strong> {record?.objectId ? record.objectId.slice(0, 16) : 'N/A'}...
+                <strong>Record:</strong> {record?.objectId ? record.objectId.slice(0, 16) : 'N/A'}
+                ...
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                 File {fileIndex + 1} of {record?.filesCount || record?.walrusCids?.length || 1}
@@ -134,13 +127,15 @@ export default function DownloadRecordModal({
                 Sign to Download Record
               </h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                You need to sign a message with your wallet to authenticate and download this medical record.
+                You need to sign a message with your wallet to authenticate and download this
+                medical record.
               </p>
             </div>
 
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
               <p className="text-xs text-blue-900 dark:text-blue-200">
-                <strong>Security:</strong> Your wallet signature is used to authenticate your access. The file will be decrypted by the backend.
+                <strong>Security:</strong> Your wallet signature is used to authenticate your
+                access. The file will be decrypted by the backend.
               </p>
             </div>
 
@@ -174,5 +169,5 @@ export default function DownloadRecordModal({
         )}
       </div>
     </div>
-  )
+  );
 }

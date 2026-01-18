@@ -230,7 +230,7 @@ export default function RecordsPage() {
                         {whitelist.name || 'Unnamed Folder'}
                       </h3>
                       <p className="text-sm text-text-muted">
-                        {recordCount} records · Role: {['Owner', 'Doctor', 'Member'][whitelist.role] || 'Unknown'}
+                        {recordCount} records · Role: {['Owner', 'Doctor', 'Member', 'Patient'][whitelist.role] || 'Unknown'}
                       </p>
                     </div>
                   </div>

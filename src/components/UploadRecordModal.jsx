@@ -1,168 +1,168 @@
-import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit'
-import { Transaction } from '@mysten/sui/transactions'
-import { CheckCircle, FileText, Loader2, Upload, X, XCircle } from 'lucide-react'
-import { useState } from 'react'
-import api from '../services/api'
-import { DOC_TYPE_NAMES } from '../utils/constants'
-import { detectDocTypeFromFile } from '../utils/files'
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
+import { CheckCircle, FileText, Loader2, Upload, X, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import api from '../services/api';
+import { DOC_TYPE_NAMES } from '../utils/constants';
+import { detectDocTypeFromFile } from '../utils/files';
 
 /**
  * Modal for uploading medical records with wallet signing
  * Implements 3-step flow: Upload → Sign → Confirm
  */
-export default function UploadRecordModal({ 
-  whitelists, 
+export default function UploadRecordModal({
+  whitelists,
   initialWhitelistId = null,
-  onSuccess, 
-  onClose 
+  onSuccess,
+  onClose,
 }) {
-  const currentAccount = useCurrentAccount()
-  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction()
-  
-  const [selectedWhitelist, setSelectedWhitelist] = useState(initialWhitelistId || '')
-  const [files, setFiles] = useState([])
-  const [docTypes, setDocTypes] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
-  const [step, setStep] = useState('select') // 'select', 'uploading', 'signing', 'confirming', 'success'
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+
+  const [selectedWhitelist, setSelectedWhitelist] = useState(initialWhitelistId || '');
+  const [files, setFiles] = useState([]);
+  const [docTypes, setDocTypes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [step, setStep] = useState('select'); // 'select', 'uploading', 'signing', 'confirming', 'success'
 
   const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files)
+    const selectedFiles = Array.from(e.target.files);
 
     if (selectedFiles.length > 10) {
-      setError('Maximum 10 files allowed')
-      return
+      setError('Maximum 10 files allowed');
+      return;
     }
 
-    const invalidFiles = selectedFiles.filter(
-      f => f.size > 100 * 1024 * 1024
-    )
+    const invalidFiles = selectedFiles.filter((f) => f.size > 100 * 1024 * 1024);
     if (invalidFiles.length > 0) {
-      setError('Each file must be under 100MB')
-      return
+      setError('Each file must be under 100MB');
+      return;
     }
 
-    setFiles(selectedFiles)
+    setFiles(selectedFiles);
 
-    const detectedDocTypes = selectedFiles.map(file =>
-      detectDocTypeFromFile(file)
-    )
-
-    setDocTypes(detectedDocTypes)
-    setError(null)
-  }
+    const detectedDocTypes = [];
+    for (const file of selectedFiles) {
+      const type = detectDocTypeFromFile(file);
+      detectedDocTypes.push(type);
+    }
+    setDocTypes(detectedDocTypes);
+    setError(null);
+  };
 
   const handleDocTypeChange = (index, type) => {
-    const newDocTypes = [...docTypes]
-    newDocTypes[index] = parseInt(type)
-    setDocTypes(newDocTypes)
-  }
+    const newDocTypes = [...docTypes];
+    newDocTypes[index] = parseInt(type);
+    setDocTypes(newDocTypes);
+  };
 
   const handleUpload = async () => {
     if (!selectedWhitelist || files.length === 0) {
-      setError('Please select whitelist and files')
-      return
+      setError('Please select whitelist and files');
+      return;
     }
 
-    const whitelist = whitelists.find(w => w.whitelistId === selectedWhitelist)
+    const whitelist = whitelists.find((w) => w.whitelistId === selectedWhitelist);
     if (!whitelist) {
-      setError('Invalid whitelist')
-      return
+      setError('Invalid whitelist');
+      return;
     }
 
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       // Step 1: Upload files (backend encrypts and uploads to Walrus)
-      setStep('uploading')
-      const formData = new FormData()
-      formData.append('whitelistId', whitelist.whitelistId)
-      formData.append('uploader', currentAccount.address)
-      formData.append('docTypes', docTypes.join(','))
-      const adminCapId = whitelist.role === 0 ? whitelist.whitelistCapId : 'doctor/member mode'
-      formData.append('adminCapId', adminCapId)      
+      setStep('uploading');
+      const formData = new FormData();
+      formData.append('whitelistId', whitelist.whitelistId);
+      formData.append('uploader', currentAccount.address);
+      formData.append('docTypes', docTypes.join(','));
+      const adminCapId = whitelist.role === 0 ? whitelist.whitelistCapId : 'doctor/member mode';
+      formData.append('adminCapId', adminCapId);
       // Note: DO NOT send privateKey for wallet signing mode
       // Backend will return transactionBlockBytes instead of auto-executing
-      files.forEach(file => {
-        formData.append('files', file)
-      })
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
 
-      const uploadResponse = await api.uploadRecord(formData)
+      const uploadResponse = await api.uploadRecord(formData);
       if (!uploadResponse.success) {
-        throw new Error(uploadResponse.error || uploadResponse.message || 'Upload failed')
+        throw new Error(uploadResponse.error || uploadResponse.message || 'Upload failed');
       }
 
       if (uploadResponse.digest && !uploadResponse.transactionBlockBytes) {
         setSuccess({
           recordId: uploadResponse.objectId,
           digest: uploadResponse.digest,
-          explorerUrl: uploadResponse.explorerUrl
-        })
-        setStep('success')
-        
+          explorerUrl: uploadResponse.explorerUrl,
+        });
+        setStep('success');
+
         if (onSuccess) {
-          onSuccess(uploadResponse)
+          onSuccess(uploadResponse);
         }
-        return
+        return;
       }
 
       // Step 2: Sign and execute transaction with wallet
       if (!uploadResponse.transactionBlockBytes) {
-        throw new Error('No transaction bytes received from server. Backend may require privateKey parameter.')
+        throw new Error(
+          'No transaction bytes received from server. Backend may require privateKey parameter.',
+        );
       }
 
-      setStep('signing')
-      const txBlock = Transaction.from(uploadResponse.transactionBlockBytes)
+      setStep('signing');
+      const txBytes = new Uint8Array(uploadResponse.transactionBlockBytes);
+      const txBlock = Transaction.from(txBytes);
       const result = await signAndExecuteTransaction({
         transaction: txBlock,
         options: {
           showEffects: true,
           showObjectChanges: true,
         },
-      })
-
-      console.log('Transaction signed and executed:', result.digest)
+      });
 
       // Show success immediately after transaction confirmed
       setSuccess({
         recordId: uploadResponse.pendingRecordId || uploadResponse.objectId,
         digest: result.digest,
-        explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`
-      })
-      setStep('success')
+        explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+      });
+      setStep('success');
 
       if (onSuccess) {
         onSuccess({
           recordId: uploadResponse.pendingRecordId || uploadResponse.objectId,
           digest: result.digest,
-          explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`
-        })
+          explorerUrl: `https://suiscan.xyz/testnet/tx/${result.digest}`,
+        });
       }
 
       setTimeout(() => {
-        onClose()
-      }, 2000)
+        onClose();
+      }, 2000);
     } catch (err) {
-      console.error('Upload failed:', err)
-      setError(err.message || 'Failed to upload record')
-      setStep('select')
+      console.error('Upload failed:', err);
+      setError(err.message || 'Failed to upload record');
+      setStep('select');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getStepMessage = () => {
     switch (step) {
       case 'uploading':
-        return 'Encrypting and uploading files to Walrus...'
+        return 'Encrypting and uploading files to Walrus...';
       case 'signing':
-        return 'Please sign the transaction in your wallet...'
+        return 'Please sign the transaction in your wallet...';
       default:
-        return ''
+        return '';
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -205,9 +205,7 @@ export default function UploadRecordModal({
               <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <div className="flex items-center">
                   <Loader2 className="w-5 h-5 text-blue-600 animate-spin mr-3" />
-                  <p className="text-sm text-blue-900 dark:text-blue-200">
-                    {getStepMessage()}
-                  </p>
+                  <p className="text-sm text-blue-900 dark:text-blue-200">{getStepMessage()}</p>
                 </div>
               </div>
             )}
@@ -233,11 +231,11 @@ export default function UploadRecordModal({
                 >
                   <option value="">Choose a folder...</option>
                   {whitelists
-                    .filter(w => w.role === 0 || w.role === 1) // Owner or Doctor
-                    .map(whitelist => (
+                    .filter((w) => w.role === 0 || w.role === 1) // Owner or Doctor
+                    .map((whitelist) => (
                       <option key={whitelist.whitelistId} value={whitelist.whitelistId}>
-                        {whitelist.name || `Folder ${whitelist.whitelistId.slice(0, 8)}...`}
-                        {' '}({['Owner', 'Doctor'][whitelist.role]})
+                        {whitelist.name || `Folder ${whitelist.whitelistId.slice(0, 8)}...`} (
+                        {['Owner', 'Doctor'][whitelist.role]})
                       </option>
                     ))}
                 </select>
@@ -264,7 +262,10 @@ export default function UploadRecordModal({
                     Document Types
                   </label>
                   {files.map((file, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                    >
                       <FileText className="w-5 h-5 text-gray-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-text-light dark:text-text-dark truncate">
@@ -293,7 +294,8 @@ export default function UploadRecordModal({
 
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
                 <p className="text-xs text-yellow-900 dark:text-yellow-200">
-                  <strong>Security:</strong> Files will be encrypted before upload. Transaction will be signed by your wallet. No private keys are exposed.
+                  <strong>Security:</strong> Files will be encrypted before upload. Transaction will
+                  be signed by your wallet. No private keys are exposed.
                 </p>
               </div>
             </div>
@@ -330,5 +332,5 @@ export default function UploadRecordModal({
         )}
       </div>
     </div>
-  )
+  );
 }

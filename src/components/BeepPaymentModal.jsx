@@ -59,7 +59,6 @@ export default function BeepPaymentModal({
         },
       });
 
-      console.log('A402 payment transaction result:', result);
 
       // Verify payment through Beep
       const verifyResponse = await api.beepVerifyPayment(

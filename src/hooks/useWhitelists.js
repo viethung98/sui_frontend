@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import api from '../services/api'
+import { useEffect, useState } from 'react';
+import api from '../services/api';
 
 /**
  * Hook to fetch and manage user's whitelists
@@ -8,46 +8,46 @@ import api from '../services/api'
  * @returns {Object} Whitelists data and methods
  */
 export function useWhitelists(userAddress, options = {}) {
-  const { autoFetch = true, pollInterval = null } = options
-  
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const { autoFetch = true, pollInterval = null } = options;
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchWhitelists = async () => {
-    if (!userAddress) return
+    if (!userAddress) return;
 
     try {
-      setLoading(true)
-      setError(null)
-      const response = await api.getUserWhitelists(userAddress)
-      setData(response)
-      return response
+      setLoading(true);
+      setError(null);
+      const response = await api.getUserWhitelists(userAddress);
+      setData(response);
+      return response;
     } catch (err) {
-      console.error('Failed to fetch whitelists:', err)
-      setError(err.message)
-      throw err
+      console.error('Failed to fetch whitelists:', err);
+      setError(err.message);
+      throw err;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (autoFetch && userAddress) {
-      fetchWhitelists()
+      fetchWhitelists();
     }
-  }, [userAddress, autoFetch])
+  }, [userAddress, autoFetch]);
 
   // Auto-refresh with polling
   useEffect(() => {
-    if (!pollInterval || !userAddress) return
+    if (!pollInterval || !userAddress) return;
 
     const interval = setInterval(() => {
-      fetchWhitelists()
-    }, pollInterval)
+      fetchWhitelists();
+    }, pollInterval);
 
-    return () => clearInterval(interval)
-  }, [pollInterval, userAddress])
+    return () => clearInterval(interval);
+  }, [pollInterval, userAddress]);
 
   return {
     whitelists: data?.whitelists || [],
@@ -55,7 +55,7 @@ export function useWhitelists(userAddress, options = {}) {
     loading,
     error,
     refresh: fetchWhitelists,
-  }
+  };
 }
 
 /**
@@ -65,33 +65,33 @@ export function useWhitelists(userAddress, options = {}) {
  * @returns {Object} Access info and methods
  */
 export function useWhitelistAccess(whitelistId, userAddress) {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const checkAccess = async () => {
-    if (!whitelistId || !userAddress) return
+    if (!whitelistId || !userAddress) return;
 
     try {
-      setLoading(true)
-      setError(null)
-      const response = await api.checkWhitelistAccess(whitelistId, userAddress)
-      setData(response)
-      return response
+      setLoading(true);
+      setError(null);
+      const response = await api.checkWhitelistAccess(whitelistId, userAddress);
+      setData(response);
+      return response;
     } catch (err) {
-      console.error('Failed to check access:', err)
-      setError(err.message)
-      throw err
+      console.error('Failed to check access:', err);
+      setError(err.message);
+      throw err;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (whitelistId && userAddress) {
-      checkAccess()
+      checkAccess();
     }
-  }, [whitelistId, userAddress])
+  }, [whitelistId, userAddress]);
 
   return {
     access: data,
@@ -103,7 +103,7 @@ export function useWhitelistAccess(whitelistId, userAddress) {
     loading,
     error,
     refresh: checkAccess,
-  }
+  };
 }
 
 /**
@@ -112,20 +112,20 @@ export function useWhitelistAccess(whitelistId, userAddress) {
  * @returns {Object} Records data and methods
  */
 export function useAccessibleRecords(userAddress) {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchRecords = async () => {
-    if (!userAddress) return
+    if (!userAddress) return;
 
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       // Step 1: Get all whitelists
-      const whitelistsResponse = await api.getUserWhitelists(userAddress)
-      const whitelists = whitelistsResponse.whitelists || []
+      const whitelistsResponse = await api.getUserWhitelists(userAddress);
+      const whitelists = whitelistsResponse.whitelists || [];
 
       if (whitelists.length === 0) {
         setData({
@@ -134,35 +134,36 @@ export function useAccessibleRecords(userAddress) {
           summary: {
             totalWhitelists: 0,
             totalRecords: 0,
-            byRole: { owner: 0, doctor: 0, member: 0 }
-          }
-        })
-        return
+            byRole: { owner: 0, doctor: 0, member: 0 },
+          },
+        });
+        return;
       }
 
       // Step 2: Batch fetch records for each whitelist
-      const recordsPromises = whitelists.map(wl =>
-        api.getWhitelistRecords(wl.whitelistId)
-          .then(res => ({ whitelist: wl, records: res.records || [] }))
-          .catch(err => {
-            console.error(`Failed to fetch records for ${wl.whitelistId}:`, err)
-            return { whitelist: wl, records: [] }
-          })
-      )
+      const recordsPromises = whitelists.map((wl) =>
+        api
+          .getWhitelistRecords(wl.whitelistId)
+          .then((res) => ({ whitelist: wl, records: res.records || [] }))
+          .catch((err) => {
+            console.error(`Failed to fetch records for ${wl.whitelistId}:`, err);
+            return { whitelist: wl, records: [] };
+          }),
+      );
 
-      const recordsByWhitelist = await Promise.all(recordsPromises)
+      const recordsByWhitelist = await Promise.all(recordsPromises);
 
       // Step 3: Flatten records with metadata
-      const allRecords = recordsByWhitelist.flatMap(item =>
-        item.records.map(record => ({
+      const allRecords = recordsByWhitelist.flatMap((item) =>
+        item.records.map((record) => ({
           ...record,
           whitelistId: item.whitelist.whitelistId,
           whitelistName: item.whitelist.name,
           userRole: item.whitelist.roleName,
           canWrite: item.whitelist.hasWrite,
           canRead: item.whitelist.hasRead,
-        }))
-      )
+        })),
+      );
 
       const result = {
         whitelists: recordsByWhitelist,
@@ -171,29 +172,29 @@ export function useAccessibleRecords(userAddress) {
           totalWhitelists: whitelists.length,
           totalRecords: allRecords.length,
           byRole: {
-            owner: whitelists.filter(w => w.role === 0).length,
-            doctor: whitelists.filter(w => w.role === 1).length,
-            member: whitelists.filter(w => w.role === 2).length,
-          }
-        }
-      }
+            owner: whitelists.filter((w) => w.role === 0).length,
+            doctor: whitelists.filter((w) => w.role === 1).length,
+            member: whitelists.filter((w) => w.role === 2).length,
+          },
+        },
+      };
 
-      setData(result)
-      return result
+      setData(result);
+      return result;
     } catch (err) {
-      console.error('Failed to fetch records:', err)
-      setError(err.message)
-      throw err
+      console.error('Failed to fetch records:', err);
+      setError(err.message);
+      throw err;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (userAddress) {
-      fetchRecords()
+      fetchRecords();
     }
-  }, [userAddress])
+  }, [userAddress]);
 
   return {
     records: data?.allRecords || [],
@@ -202,7 +203,7 @@ export function useAccessibleRecords(userAddress) {
     loading,
     error,
     refresh: fetchRecords,
-  }
+  };
 }
 
 /**
@@ -212,35 +213,35 @@ export function useAccessibleRecords(userAddress) {
  * @returns {Object} Actions data and methods
  */
 export function useUserActions(userAddress, options = {}) {
-  const { page = 1, limit = 50 } = options
-  
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const { page = 1, limit = 50 } = options;
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchActions = async () => {
-    if (!userAddress) return
+    if (!userAddress) return;
 
     try {
-      setLoading(true)
-      setError(null)
-      const response = await api.getUserActions(userAddress, page, limit)
-      setData(response)
-      return response
+      setLoading(true);
+      setError(null);
+      const response = await api.getUserActions(userAddress, page, limit);
+      setData(response);
+      return response;
     } catch (err) {
-      console.error('Failed to fetch actions:', err)
-      setError(err.message)
-      throw err
+      console.error('Failed to fetch actions:', err);
+      setError(err.message);
+      throw err;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (userAddress) {
-      fetchActions()
+      fetchActions();
     }
-  }, [userAddress, page, limit])
+  }, [userAddress, page, limit]);
 
   return {
     actions: data?.actions || [],
@@ -248,5 +249,5 @@ export function useUserActions(userAddress, options = {}) {
     loading,
     error,
     refresh: fetchActions,
-  }
+  };
 }

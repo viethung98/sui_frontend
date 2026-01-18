@@ -474,7 +474,8 @@ export default function DashboardPage() {
           type={addModalType}
           onSuccess={() => {
             setShowAddModal(false);
-            loadDashboardData();
+            // Delay reload to allow transaction confirmation
+            setTimeout(() => loadDashboardData(), 3000);
           }}
           onClose={() => setShowAddModal(false)}
         />
@@ -488,7 +489,8 @@ export default function DashboardPage() {
           address={removeTarget.address}
           onSuccess={() => {
             setShowRemoveModal(false);
-            loadDashboardData();
+            // Delay reload to allow transaction confirmation
+            setTimeout(() => loadDashboardData(), 3000);
           }}
           onClose={() => setShowRemoveModal(false)}
         />

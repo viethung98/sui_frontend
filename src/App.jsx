@@ -3,8 +3,11 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
 import { EnokiFlowProvider } from "@mysten/enoki/react"
 import CustomWalletProvider from './providers/CustomWalletProvider'
+import UserRoleProvider from './providers/UserRoleProvider'
+import RoleSelectionModal from './components/RoleSelectionModal'
 import AccessControlPage from './pages/AccessControlPage'
 import AIMonetizationPage from './pages/AIMonetizationPage'
 import DashboardPage from './pages/DashboardPage'
@@ -41,18 +44,67 @@ function App() {
           <Router>
 
             <WalletProvider autoConnect>
-              {/* <CustomWalletProvider> */}
-                <Routes>
-                  {/* <Route path="/" element={<IntroPage />} /> */}
-                  <Route path="/" element={<Layout><HomePage /></Layout>} />
-                  <Route path="/dashboard" element={<Layout><DashboardPage /></Layout>} />
-                  <Route path="/records" element={<Layout><RecordsPage /></Layout>} />
-                  <Route path="/access" element={<Layout><AccessControlPage /></Layout>} />
-                  <Route path="/ai-monetization" element={<Layout><AIMonetizationPage /></Layout>} />
-                  <Route path="/insurance-claims" element={<Layout><InsuranceClaimsPage /></Layout>} />
-                  <Route path="/auth" element={<Layout><AuthCallbackPage /></Layout>} />
-                </Routes>
-              {/* </CustomWalletProvider> */}
+              <UserRoleProvider>
+                {/* <CustomWalletProvider> */}
+                  <Routes>
+                    {/* <Route path="/" element={<IntroPage />} /> */}
+                    {/* Insurance users can only access insurance-claims page */}
+                    <Route 
+                      path="/insurance-claims" 
+                      element={
+                        <ProtectedRoute allowedRoles={['user', 'insurance']}>
+                          <Layout><InsuranceClaimsPage /></Layout>
+                        </ProtectedRoute>
+                      } 
+                    />
+                    {/* User-only routes - insurance users will be redirected to insurance-claims */}
+                    <Route 
+                      path="/" 
+                      element={
+                        <ProtectedRoute allowedRoles={['user']}>
+                          <Layout><HomePage /></Layout>
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/dashboard" 
+                      element={
+                        <ProtectedRoute allowedRoles={['user']}>
+                          <Layout><DashboardPage /></Layout>
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/records" 
+                      element={
+                        <ProtectedRoute allowedRoles={['user']}>
+                          <Layout><RecordsPage /></Layout>
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/access" 
+                      element={
+                        <ProtectedRoute allowedRoles={['user']}>
+                          <Layout><AccessControlPage /></Layout>
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/ai-monetization" 
+                      element={
+                        <ProtectedRoute allowedRoles={['user']}>
+                          <Layout><AIMonetizationPage /></Layout>
+                        </ProtectedRoute>
+                      } 
+                    />
+                    {/* Auth callback is accessible to all */}
+                    <Route path="/auth" element={<Layout><AuthCallbackPage /></Layout>} />
+                  </Routes>
+                  {/* Role Selection Modal - shows when wallet is connected but no role selected */}
+                  <RoleSelectionModal />
+                {/* </CustomWalletProvider> */}
+              </UserRoleProvider>
             </WalletProvider>
           </Router>
         {/* </EnokiFlowProvider> */}

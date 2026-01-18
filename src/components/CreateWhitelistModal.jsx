@@ -1,6 +1,7 @@
 import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
-import { CheckCircle, Loader2, Plus, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, Plus, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useUserRole } from '../providers/UserRoleProvider';
 import { createWhitelistWithWallet } from '../services/transaction';
 
 /**
@@ -9,6 +10,8 @@ import { createWhitelistWithWallet } from '../services/transaction';
 export default function CreateWhitelistModal({ onSuccess, onClose }) {
   const currentAccount = useCurrentAccount();
   const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const { role } = useUserRole();
+  const isInsurance = role === 'insurance';
 
   const [label, setLabel] = useState('');
   const [patientAddress, setPatientAddress] = useState('');
@@ -17,6 +20,12 @@ export default function CreateWhitelistModal({ onSuccess, onClose }) {
   const [success, setSuccess] = useState(null);
 
   const handleCreateWhitelist = async () => {
+    // Prevent insurance users from creating whitelists
+    if (isInsurance) {
+      setError('Insurance users are not allowed to create medical folders');
+      return;
+    }
+
     if (!label.trim()) {
       setError('Please enter a whitelist name');
       return;

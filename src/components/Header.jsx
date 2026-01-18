@@ -6,6 +6,7 @@ import GoogleLoginButton from './GoogleLoginButton'
 import SetupKeyModal from './SetupKeyModal'
 import WalletButton from './WalletButton'
 import { useDarkMode } from '../hooks'
+import { useUserRole } from '../providers/UserRoleProvider'
 import IconMain from "../../public/images/Logos/Icon-main.png";
 import IconDark from "../../public/images/Logos/Icon-white.png";
 
@@ -14,16 +15,24 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [showSetupKey, setShowSetupKey] = React.useState(false);
   const [isDarkMode] = useDarkMode();
+  const { role } = useUserRole();
   const location = useLocation()
 
-  const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Records', href: '/records' },
-    { name: 'Insurance Claims', href: '/insurance-claims' },
-    { name: 'AI & Monetization', href: '/ai-monetization' },
-    // { name: 'Access Control', href: '/access' },
+  // Navigation items - filter based on user role
+  const allNavigation = [
+    { name: 'Home', href: '/', roles: ['user'] },
+    { name: 'Dashboard', href: '/dashboard', roles: ['user'] },
+    { name: 'Records', href: '/records', roles: ['user'] },
+    { name: 'AI & Monetization', href: '/ai-monetization', roles: ['user'] },
+    { name: 'Insurance Claims', href: '/insurance-claims', roles: ['user', 'insurance'] },
+    // { name: 'Access Control', href: '/access', roles: ['user'] },
   ]
+
+  // Filter navigation based on user role
+  const navigation = allNavigation.filter(item => {
+    if (!role) return true // Show all if no role selected yet
+    return item.roles.includes(role)
+  })
 
   const isActive = (path) => location.pathname === path
 
@@ -33,7 +42,7 @@ export default function Header() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2 group cursor-pointer">
+            <Link to={role === 'insurance' ? '/insurance-claims' : '/'} className="flex items-center space-x-2 group cursor-pointer">
               <div className="p-2 bg-primary-500 rounded-lg transition-colors duration-200 group-hover:bg-primary-600">
                 {/* <Shield className="w-6 h-6 text-white" /> */}
                 <img 

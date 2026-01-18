@@ -1,12 +1,15 @@
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { Folder, Loader2, Plus, Shield, UserCheck, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useUserRole } from '../providers/UserRoleProvider';
 import api from '../services/api';
 import { ROLE_NAMES } from '../utils/constants';
 import { formatRelativeTime } from '../utils/helpers';
 
 export default function UserWhitelists({ onSelectWhitelist }) {
   const currentAccount = useCurrentAccount();
+  const { role } = useUserRole();
+  const isInsurance = role === 'insurance';
   const [whitelists, setWhitelists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -116,15 +119,19 @@ export default function UserWhitelists({ onSelectWhitelist }) {
             No Whitelists Yet
           </h3>
           <p className="text-text-muted mb-6">
-            Create your first whitelist to start managing medical records
+            {isInsurance 
+              ? 'Insurance users cannot create medical folders. Please search for existing folders using Whitelist ID and Patient Address.'
+              : 'Create your first whitelist to start managing medical records'}
           </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200 cursor-pointer shadow-sm font-medium"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Create Whitelist
-          </button>
+          {!isInsurance && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200 cursor-pointer shadow-sm font-medium"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create Whitelist
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

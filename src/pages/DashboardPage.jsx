@@ -17,10 +17,13 @@ import { useEffect, useState } from 'react';
 import AddPermissionModal from '../components/AddPermissionModal';
 import CreateWhitelistModal from '../components/CreateWhitelistModal';
 import RemovePermissionModal from '../components/RemovePermissionModal';
+import { useUserRole } from '../providers/UserRoleProvider';
 import api from '../services/api';
 
 export default function DashboardPage() {
   const currentAccount = useCurrentAccount();
+  const { role } = useUserRole();
+  const isInsurance = role === 'insurance';
   const [whitelists, setWhitelists] = useState([]);
   const [recentActions, setRecentActions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -215,7 +218,9 @@ export default function DashboardPage() {
               <Folder className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-text-muted">No whitelists found</p>
               <p className="text-sm text-text-muted mt-2">
-                Create your first whitelist to get started
+                {isInsurance 
+                  ? 'Insurance users cannot create medical folders. Please search for existing folders using Whitelist ID and Patient Address.'
+                  : 'Create your first whitelist to get started'}
               </p>
             </div>
           ) : (

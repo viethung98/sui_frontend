@@ -1,7 +1,9 @@
-import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit'
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit'
+import { Search } from 'lucide-react'
 import { AlertCircle, Calendar, FileText, Loader2, Upload, X } from 'lucide-react'
 import React, { useState } from 'react'
 import api from '../services/api'
+import { useUserRole } from '../providers/UserRoleProvider'
 import { createTimelineEntryWithWallet } from '../services/transaction'
 import Alert from './Alert'
 import LoadingSpinner from './LoadingSpinner'
@@ -18,9 +20,13 @@ export default function CreateClaimModal({
 }) {
   const currentAccount = useCurrentAccount()
   const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction()
+  const suiClient = useSuiClient()
+  const { role } = useUserRole()
+  const isInsurance = role === 'insurance'
   
   const [formData, setFormData] = useState({
     whitelistId: selectedWhitelist?.whitelistId || '',
+    patientRef: '', // Patient address for insurance role
     entryType: '0', // ENTRY_VISIT_SUMMARY
     visitDate: '',
     providerSpecialty: '',
@@ -34,6 +40,8 @@ export default function CreateClaimModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [searchingWhitelist, setSearchingWhitelist] = useState(false)
+  const [whitelistSearchResult, setWhitelistSearchResult] = useState(null)
 
   const entryTypes = [
     { value: '0', label: 'Visit Summary' },
@@ -70,11 +78,71 @@ export default function CreateClaimModal({
     }))
   }
 
+  // Search whitelist by ID from Sui RPC (for insurance role)
+  const handleSearchWhitelist = async () => {
+    if (!formData.whitelistId || !formData.whitelistId.trim()) {
+      setError('Please enter a whitelist ID')
+      return
+    }
+
+    try {
+      setSearchingWhitelist(true)
+      setError(null)
+      setWhitelistSearchResult(null)
+
+      // Fetch whitelist object from Sui RPC
+      const whitelistObject = await suiClient.getObject({
+        id: formData.whitelistId.trim(),
+        options: {
+          showContent: true,
+          showOwner: true,
+          showType: true,
+        },
+      })
+
+      if (whitelistObject.error) {
+        throw new Error(`Whitelist not found: ${whitelistObject.error.code}`)
+      }
+
+      if (!whitelistObject.data) {
+        throw new Error('Whitelist object not found')
+      }
+
+      // Extract whitelist details
+      const content = whitelistObject.data.content
+      if (content?.dataType !== 'moveObject') {
+        throw new Error('Invalid whitelist object type')
+      }
+
+      const fields = content.fields || {}
+      setWhitelistSearchResult({
+        whitelistId: formData.whitelistId.trim(),
+        name: fields.name || 'Unnamed Folder',
+        owner: fields.owner || 'Unknown',
+        exists: true,
+      })
+
+      console.log('Whitelist found:', whitelistSearchResult)
+    } catch (err) {
+      console.error('Whitelist search error:', err)
+      setError(`Failed to find whitelist: ${err.message}`)
+      setWhitelistSearchResult(null)
+    } finally {
+      setSearchingWhitelist(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
     if (!formData.whitelistId) {
-      setError('Please select a medical folder')
+      setError('Please enter or select a medical folder')
+      return
+    }
+
+    // For insurance role, also require patient_ref
+    if (isInsurance && !formData.patientRef) {
+      setError('Please enter patient address')
       return
     }
 
@@ -88,10 +156,18 @@ export default function CreateClaimModal({
       setError(null)
       setUploadProgress(0)
 
-      // Find selected whitelist
-      const whitelist = whitelists.find(w => w.whitelistId === formData.whitelistId)
-      if (!whitelist) {
-        throw new Error('Selected whitelist not found')
+      // For insurance role, verify whitelist exists (if not already verified)
+      if (isInsurance && !whitelistSearchResult) {
+        await handleSearchWhitelist()
+        if (!whitelistSearchResult) {
+          throw new Error('Please verify the whitelist ID first')
+        }
+      } else if (!isInsurance) {
+        // For user role, find selected whitelist from their list
+        const whitelist = whitelists.find(w => w.whitelistId === formData.whitelistId)
+        if (!whitelist) {
+          throw new Error('Selected whitelist not found')
+        }
       }
 
       // Step 1: Process file and get semantic_hash from processed data (if any)
@@ -186,15 +262,26 @@ export default function CreateClaimModal({
       setUploadProgress(60)
 
       // Step 2: Get patient reference (hash of patient address)
-      // Use current account address - this should match the whitelist owner
-      if (!currentAccount?.address) {
-        throw new Error('Please connect your wallet first')
+      let patientAddress = ''
+      
+      if (isInsurance) {
+        // For insurance role, use the searched patient_ref (patient address)
+        if (!formData.patientRef || !formData.patientRef.trim()) {
+          throw new Error('Please enter patient address')
+        }
+        patientAddress = formData.patientRef.trim()
+      } else {
+        // For user role, use current account address
+        if (!currentAccount?.address) {
+          throw new Error('Please connect your wallet first')
+        }
+        patientAddress = currentAccount.address
       }
       
       // Hash the address using SHA-256 (contract uses blake2b256, but SHA-256 is acceptable for now)
       // Note: For exact contract compatibility, use blake2b256 library
       const encoder = new TextEncoder()
-      const addressBytes = encoder.encode(currentAccount.address)
+      const addressBytes = encoder.encode(patientAddress)
       const hashBuffer = await crypto.subtle.digest('SHA-256', addressBytes)
       const patientRef = new Uint8Array(hashBuffer)
 
@@ -270,26 +357,90 @@ export default function CreateClaimModal({
             <Alert type="error" message={error} onClose={() => setError(null)} />
           )}
 
-          {/* Whitelist Selection */}
-          <div>
-            <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
-              Medical Folder *
-            </label>
-            <select
-              name="whitelistId"
-              value={formData.whitelistId}
-              onChange={handleInputChange}
-              required
-              className="w-full p-3 border border-border-light dark:border-border-dark rounded-lg bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="">Select a medical folder</option>
-              {whitelists.map((wl) => (
-                <option key={wl.whitelistId} value={wl.whitelistId}>
-                  {wl.name || wl.label || `Folder ${wl.whitelistId.slice(0, 8)}...`}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Whitelist Selection - Different UI for Insurance vs User */}
+          {isInsurance ? (
+            <>
+              {/* Insurance: Search whitelist by ID */}
+              <div>
+                <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+                  Whitelist ID (Medical Folder) *
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    name="whitelistId"
+                    value={formData.whitelistId}
+                    onChange={handleInputChange}
+                    placeholder="Enter whitelist ID (e.g., 0x...)"
+                    required
+                    className="flex-1 p-3 border border-border-light dark:border-border-dark rounded-lg bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSearchWhitelist}
+                    disabled={searchingWhitelist || !formData.whitelistId.trim()}
+                    className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  >
+                    {searchingWhitelist ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {whitelistSearchResult && (
+                  <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      ✓ Found: {whitelistSearchResult.name} (Owner: {whitelistSearchResult.owner.slice(0, 8)}...)
+                    </p>
+                  </div>
+                )}
+                <p className="mt-1 text-xs text-text-muted">
+                  Enter the whitelist ID to search for the patient's medical folder
+                </p>
+              </div>
+
+              {/* Insurance: Patient Address Input */}
+              <div>
+                <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+                  Patient Address *
+                </label>
+                <input
+                  type="text"
+                  name="patientRef"
+                  value={formData.patientRef}
+                  onChange={handleInputChange}
+                  placeholder="Enter patient's Sui address (0x...)"
+                  required
+                  className="w-full p-3 border border-border-light dark:border-border-dark rounded-lg bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-text-muted">
+                  Enter the patient's Sui wallet address. This will be hashed to patient_ref_bytes for the claim.
+                </p>
+              </div>
+            </>
+          ) : (
+            /* User: Select from their whitelists */
+            <div>
+              <label className="block text-sm font-medium text-text-light dark:text-text-dark mb-2">
+                Medical Folder *
+              </label>
+              <select
+                name="whitelistId"
+                value={formData.whitelistId}
+                onChange={handleInputChange}
+                required
+                className="w-full p-3 border border-border-light dark:border-border-dark rounded-lg bg-white dark:bg-gray-700 text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Select a medical folder</option>
+                {whitelists.map((wl) => (
+                  <option key={wl.whitelistId} value={wl.whitelistId}>
+                    {wl.name || wl.label || `Folder ${wl.whitelistId.slice(0, 8)}...`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Entry Type */}
           <div>
@@ -486,7 +637,7 @@ export default function CreateClaimModal({
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.whitelistId || !formData.visitDate}
+              disabled={loading || !formData.whitelistId || !formData.visitDate || (isInsurance && !formData.patientRef)}
               className="inline-flex items-center px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (

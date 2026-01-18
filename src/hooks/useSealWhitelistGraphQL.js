@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { blake2b } from 'blakejs';
 
 const SUI_GRAPHQL_ENDPOINT = 'https://graphql.testnet.sui.io/graphql';
@@ -186,10 +186,11 @@ function parseDynamicField(field) {
 }
 
 export function useSealWhitelistDynamicFields(objectId, patientRef, options = {}) {
-  const { autoFetch = true, filterByPatientRef = true } = options;
+  const { autoFetch = true, filterByPatientRef = true, fetchFullEntryDetails = false } = options;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [enrichingEntries, setEnrichingEntries] = useState(false);
 
   const fetchDynamicFields = useCallback(async () => {
     if (!objectId) {
@@ -237,9 +238,65 @@ export function useSealWhitelistDynamicFields(objectId, patientRef, options = {}
         }))
         .sort((a, b) => b.timestampMs - a.timestampMs);
 
-      const timelineEntries = filterByPatientRef && targetPatientRefBytes
+      let timelineEntries = filterByPatientRef && targetPatientRefBytes
         ? allEntries.filter(e => patientRefMatches(e.patientRefBytes, targetPatientRefBytes))
         : allEntries;
+
+      // If fetchFullEntryDetails is enabled, fetch full details for entries with dynamicObjectId
+      if (fetchFullEntryDetails && timelineEntries.length > 0) {
+        setEnrichingEntries(true);
+        try {
+          const enrichedEntries = await Promise.all(
+            timelineEntries.map(async (entry) => {
+              // If entry has a dynamicObjectId, fetch full details
+              if (entry.dynamicObjectId) {
+                try {
+                  const fullEntryResult = await executeGraphQLQuery(TIMELINE_ENTRY_QUERY, { 
+                    id: entry.dynamicObjectId 
+                  });
+                  const fullEntry = fullEntryResult.object;
+                  
+                  if (fullEntry) {
+                    const entryJson = fullEntry.asMoveObject?.contents?.[0]?.json || {};
+                    
+                    // Merge full entry data with existing entry data
+                    return {
+                      ...entry,
+                      // Override with full entry data if available
+                      visitDate: entryJson.visit_date || entry.visitDate,
+                      providerSpecialty: entryJson.provider_specialty || entry.providerSpecialty,
+                      visitType: entryJson.visit_type || entry.visitType,
+                      status: entryJson.status || entry.status,
+                      contentHash: entryJson.content_hash || entry.contentHash,
+                      walrusBlobId: entryJson.walrus_blob_id || entry.walrusBlobId,
+                      createdAt: entryJson.created_at || entry.createdAt,
+                      revoked: entryJson.revoked !== undefined ? entryJson.revoked : entry.revoked,
+                      // Additional metadata from full entry
+                      version: fullEntry.version,
+                      digest: fullEntry.digest,
+                      type: fullEntry.type?.repr || '',
+                      rawData: fullEntry,
+                    };
+                  }
+                } catch (err) {
+                  console.warn(`Failed to fetch full details for entry ${entry.dynamicObjectId}:`, err);
+                  // Return original entry if fetch fails
+                  return entry;
+                }
+              }
+              // Return original entry if no dynamicObjectId
+              return entry;
+            })
+          );
+          
+          timelineEntries = enrichedEntries;
+        } catch (err) {
+          console.warn('Failed to enrich some entries:', err);
+          // Continue with original entries if enrichment fails
+        } finally {
+          setEnrichingEntries(false);
+        }
+      }
 
       const depositPools = parsedFields
         .filter(f => f.type === 'deposit_pool')
@@ -263,7 +320,7 @@ export function useSealWhitelistDynamicFields(objectId, patientRef, options = {}
           digest: sealWhitelist.digest,
         },
         timelineEntries,
-        allTimelineEntries: allEntries,
+        allTimelineEntries: allEntries, // Keep original entries without enrichment
         depositPools,
         otherFields,
         patientRefBytes: targetPatientRefBytes,
@@ -281,7 +338,7 @@ export function useSealWhitelistDynamicFields(objectId, patientRef, options = {}
     }
   }, [objectId, patientRef, filterByPatientRef]);
 
-  useCallback(() => {
+  useEffect(() => {
     if (autoFetch && objectId) {
       fetchDynamicFields();
     }
@@ -294,7 +351,7 @@ export function useSealWhitelistDynamicFields(objectId, patientRef, options = {}
     allTimelineEntries: data?.allTimelineEntries || [],
     depositPools: data?.depositPools || [],
     otherFields: data?.otherFields || [],
-    loading,
+    loading: loading || enrichingEntries,
     error,
     refresh: fetchDynamicFields,
     patientRefBytes: data?.patientRefBytes,

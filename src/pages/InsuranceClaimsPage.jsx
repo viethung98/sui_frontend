@@ -43,6 +43,7 @@ export default function InsuranceClaimsPage() {
     {
       autoFetch: false, // We'll manually trigger with refresh
       filterByPatientRef: true, // Filter by patient reference
+      fetchFullEntryDetails: true, // Fetch full entry details using useTimelineEntry
     }
   )
 

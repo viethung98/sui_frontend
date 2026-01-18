@@ -28,7 +28,6 @@ export default function DownloadRecordModal({
       setError(null)
 
       // Step 1: Prepare download - Get message to sign from backend
-      console.log('Step 1: Preparing download for record:', record.objectId)
       const prepareResponse = await api.prepareDownload(
         record.objectId,
         requesterAddress || currentAccount?.address,

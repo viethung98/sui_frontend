@@ -25,8 +25,6 @@ export default function PaymentModal({ isOpen, onClose, paymentData, patientAddr
   }
 
   // Log payment data for debugging
-  console.log('PaymentModal opened with data:', paymentData);
-
   const handlePayment = async () => {
     setIsProcessing(true);
     setError(null);
@@ -45,8 +43,6 @@ export default function PaymentModal({ isOpen, onClose, paymentData, patientAddr
       if (isNaN(amountFloat) || amountFloat <= 0) {
         throw new Error('Invalid payment amount');
       }
-
-      console.log('Processing payment:', { amount: amountFloat, recipient: paymentData.recipient });
 
       // Create transaction for payment
       const txb = new Transaction();

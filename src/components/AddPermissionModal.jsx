@@ -37,7 +37,6 @@ export default function AddPermissionModal({
     try {
       setLoading(true)
       setError(null)
-      console.log('whitelist:', whitelist)
       // Call contract directly via transaction function
       const result = await actionFn({
         signAndExecuteTransaction,

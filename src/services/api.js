@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../utils/constants'
+import { API_BASE_URL } from '../utils/constants';
 
 /**
  * API Client for Medical Vault Backend
@@ -14,11 +14,10 @@ class ApiClient {
    */
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    console.log("API Request:", url);
-
+    console.log('API Request:', url);
     const config = {
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...options.headers,
       },
       ...options,
@@ -26,20 +25,18 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      console.log("API Response status:", response.status, response.statusText);
+      console.log('API Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "Request failed" }));
-        throw new Error(error.error || error.message || "Request failed");
+        const error = await response.json().catch(() => ({ message: 'Request failed' }));
+        throw new Error(error.error || error.message || 'Request failed');
       }
 
       const data = await response.json();
-      console.log("API Response data:", data);
+      console.log('API Response data:', data);
       return data;
     } catch (error) {
-      console.error("API Error:", error);
+      console.error('API Error:', error);
       throw error;
     }
   }
@@ -50,8 +47,8 @@ class ApiClient {
    * Create new whitelist (with privateKey for auto-execute, or returns txBytes)
    */
   async createWhitelist(data) {
-    return this.request("/whitelists", {
-      method: "POST",
+    return this.request('/whitelists', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   }
@@ -75,7 +72,7 @@ class ApiClient {
    */
   async addDoctor(whitelistId, data) {
     return this.request(`/whitelists/${whitelistId}/doctors`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(data),
     });
   }
@@ -85,7 +82,7 @@ class ApiClient {
    */
   async removeDoctor(whitelistId, data) {
     return this.request(`/whitelists/${whitelistId}/doctors`, {
-      method: "DELETE",
+      method: 'DELETE',
       body: JSON.stringify(data),
     });
   }
@@ -95,7 +92,7 @@ class ApiClient {
    */
   async addMember(whitelistId, data) {
     return this.request(`/whitelists/${whitelistId}/members`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(data),
     });
   }
@@ -105,7 +102,7 @@ class ApiClient {
    */
   async removeMember(whitelistId, data) {
     return this.request(`/whitelists/${whitelistId}/members`, {
-      method: "DELETE",
+      method: 'DELETE',
       body: JSON.stringify(data),
     });
   }
@@ -118,23 +115,20 @@ class ApiClient {
    */
   async uploadRecord(formData) {
     const url = `${this.baseURL}/records/upload`;
-
     try {
       const response = await fetch(url, {
-        method: "POST",
+        method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "Upload failed" }));
-        throw new Error(error.error || error.message || "Upload failed");
+        const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(error.error || error.message || 'Upload failed');
       }
 
       return await response.json();
     } catch (error) {
-      console.error("Upload Error:", error);
+      console.error('Upload Error:', error);
       throw error;
     }
   }
@@ -164,9 +158,9 @@ class ApiClient {
 
     try {
       const response = await fetch(url, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           requesterAddress,
@@ -177,15 +171,13 @@ class ApiClient {
       if (!response.ok) {
         const error = await response
           .json()
-          .catch(() => ({ message: "Failed to prepare download" }));
-        throw new Error(
-          error.error || error.message || "Failed to prepare download"
-        );
+          .catch(() => ({ message: 'Failed to prepare download' }));
+        throw new Error(error.error || error.message || 'Failed to prepare download');
       }
 
       return await response.json();
     } catch (error) {
-      console.error("Prepare Download Error:", error);
+      console.error('Prepare Download Error:', error);
       throw error;
     }
   }
@@ -198,9 +190,9 @@ class ApiClient {
 
     try {
       const response = await fetch(url, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           sessionId,
@@ -209,15 +201,13 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "View failed" }));
-        throw new Error(error.error || error.message || "View failed");
+        const error = await response.json().catch(() => ({ message: 'View failed' }));
+        throw new Error(error.error || error.message || 'View failed');
       }
 
       return await response.blob();
     } catch (error) {
-      console.error("View Error:", error);
+      console.error('View Error:', error);
       throw error;
     }
   }
@@ -227,9 +217,9 @@ class ApiClient {
 
     try {
       const response = await fetch(url, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           sessionId,
@@ -238,15 +228,13 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "Download failed" }));
-        throw new Error(error.error || error.message || "Download failed");
+        const error = await response.json().catch(() => ({ message: 'Download failed' }));
+        throw new Error(error.error || error.message || 'Download failed');
       }
 
       return await response.blob();
     } catch (error) {
-      console.error("Complete Download Error:", error);
+      console.error('Complete Download Error:', error);
       throw error;
     }
   }
@@ -260,23 +248,21 @@ class ApiClient {
 
     try {
       const response = await fetch(url, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "Download failed" }));
-        throw new Error(error.error || error.message || "Download failed");
+        const error = await response.json().catch(() => ({ message: 'Download failed' }));
+        throw new Error(error.error || error.message || 'Download failed');
       }
 
       return await response.blob();
     } catch (error) {
-      console.error("Download Error:", error);
+      console.error('Download Error:', error);
       throw error;
     }
   }
@@ -375,11 +361,11 @@ class ApiClient {
   async mcpSearchPatientRecord(query, patientAddress, accessToken = null) {
     const headers = {};
     if (accessToken) {
-      headers["Authorization"] = `Bearer ${accessToken}`;
+      headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    return this.request("/mcp/search", {
-      method: "POST",
+    return this.request('/mcp/search', {
+      method: 'POST',
       headers,
       body: JSON.stringify({ query, patientAddress }),
     });
@@ -391,11 +377,11 @@ class ApiClient {
   async mcpGetClinicalSummary(patientId, accessToken = null) {
     const headers = {};
     if (accessToken) {
-      headers["Authorization"] = `Bearer ${accessToken}`;
+      headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
     return this.request(`/mcp/clinical-summary?patientId=${patientId}`, {
-      method: "GET",
+      method: 'GET',
       headers,
     });
   }
@@ -406,11 +392,11 @@ class ApiClient {
   async mcpQueryFHIRResource(resourceType, params, accessToken = null) {
     const headers = {};
     if (accessToken) {
-      headers["Authorization"] = `Bearer ${accessToken}`;
+      headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    return this.request("/mcp/fhir/query", {
-      method: "POST",
+    return this.request('/mcp/fhir/query', {
+      method: 'POST',
       headers,
       body: JSON.stringify({ resourceType, params }),
     });
@@ -420,8 +406,8 @@ class ApiClient {
    * Translate natural language to FHIR query
    */
   async mcpNaturalLanguageToFHIR(query) {
-    return this.request("/mcp/nlp-to-fhir", {
-      method: "POST",
+    return this.request('/mcp/nlp-to-fhir', {
+      method: 'POST',
       body: JSON.stringify({ query }),
     });
   }
@@ -430,8 +416,8 @@ class ApiClient {
    * Get MCP capabilities
    */
   async mcpGetCapabilities() {
-    return this.request("/mcp/capabilities", {
-      method: "GET",
+    return this.request('/mcp/capabilities', {
+      method: 'GET',
     });
   }
 
@@ -441,8 +427,8 @@ class ApiClient {
    * Initiate payment for MCP endpoint access
    */
   async paymentInitiate(patientAddress, endpoint, amount = null) {
-    return this.request("/payment/initiate", {
-      method: "POST",
+    return this.request('/payment/initiate', {
+      method: 'POST',
       body: JSON.stringify({ patientAddress, endpoint, amount }),
     });
   }
@@ -451,8 +437,8 @@ class ApiClient {
    * Verify payment and get access token
    */
   async paymentVerify(paymentId, transactionDigest) {
-    return this.request("/payment/verify", {
-      method: "POST",
+    return this.request('/payment/verify', {
+      method: 'POST',
       body: JSON.stringify({ paymentId, transactionDigest }),
     });
   }
@@ -461,17 +447,15 @@ class ApiClient {
    * Get payment history
    */
   async paymentGetHistory(patientAddress, limit = 50) {
-    return this.request(
-      `/payment/history?patientAddress=${patientAddress}&limit=${limit}`
-    );
+    return this.request(`/payment/history?patientAddress=${patientAddress}&limit=${limit}`);
   }
 
   /**
    * Get pricing information
    */
   async paymentGetPricing() {
-    return this.request("/payment/pricing", {
-      method: "GET",
+    return this.request('/payment/pricing', {
+      method: 'GET',
     });
   }
 
@@ -479,8 +463,8 @@ class ApiClient {
    * Validate access token
    */
   async paymentValidateToken(token, patientAddress) {
-    return this.request("/payment/validate-token", {
-      method: "POST",
+    return this.request('/payment/validate-token', {
+      method: 'POST',
       body: JSON.stringify({ token, patientAddress }),
     });
   }
@@ -490,11 +474,9 @@ class ApiClient {
   /**
    * Initialize Beep MCP session
    */
-  async beepInitSession(
-    clientInfo = { name: "medical-vault", version: "1.0.0" }
-  ) {
-    return this.request("/beep/session/init", {
-      method: "POST",
+  async beepInitSession(clientInfo = { name: 'medical-vault', version: '1.0.0' }) {
+    return this.request('/beep/session/init', {
+      method: 'POST',
       body: JSON.stringify({ clientInfo }),
     });
   }
@@ -509,15 +491,9 @@ class ApiClient {
   /**
    * Initiate A402 payment through Beep
    */
-  async beepInitiatePayment(
-    sessionId,
-    patientAddress,
-    endpoint,
-    amount,
-    currency = "USDC"
-  ) {
-    return this.request("/beep/payment/initiate", {
-      method: "POST",
+  async beepInitiatePayment(sessionId, patientAddress, endpoint, amount, currency = 'USDC') {
+    return this.request('/beep/payment/initiate', {
+      method: 'POST',
       body: JSON.stringify({
         sessionId,
         patientAddress,
@@ -532,8 +508,8 @@ class ApiClient {
    * Verify A402 payment
    */
   async beepVerifyPayment(paymentId, transactionDigest) {
-    return this.request("/beep/payment/verify", {
-      method: "POST",
+    return this.request('/beep/payment/verify', {
+      method: 'POST',
       body: JSON.stringify({ paymentId, transactionDigest }),
     });
   }
@@ -542,10 +518,8 @@ class ApiClient {
    * Get A402 payment history
    */
   async beepGetPaymentHistory(patientAddress, limit = 50) {
-    return this.request(
-      `/beep/payment/history?address=${patientAddress}&limit=${limit}`
-    );
+    return this.request(`/beep/payment/history?address=${patientAddress}&limit=${limit}`);
   }
 }
 
-export default new ApiClient()
+export default new ApiClient();

@@ -40,7 +40,11 @@ export async function signAndExecute(signAndExecuteTransaction, tx) {
  * @param {string} params.label - Whitelist label/name
  * @returns {Promise<Object>} Created whitelist info
  */
-export async function createWhitelistWithWallet({ signAndExecuteTransaction, label }) {
+export async function createWhitelistWithWallet({
+  signAndExecuteTransaction,
+  label,
+  patientAddress,
+}) {
   try {
     // Create transaction to call contract directly
     const transaction = new Transaction();
@@ -50,6 +54,7 @@ export async function createWhitelistWithWallet({ signAndExecuteTransaction, lab
       arguments: [
         transaction.object(WHITELIST_REGISTRY), // registry: &mut WhitelistRegistry
         transaction.pure.string(label), // name: vector<u8>
+        transaction.pure.address(patientAddress), // patient: address
         transaction.object(CLOCK_OBJECT_ID), // clock: &Clock
         // ctx: &mut TxContext is automatically provided
       ],
@@ -57,14 +62,6 @@ export async function createWhitelistWithWallet({ signAndExecuteTransaction, lab
 
     // Sign and execute with wallet
     const result = await signAndExecute(signAndExecuteTransaction, transaction);
-    console.log('Create whitelist transaction result:', result);
-    // Extract whitelist ID and admin cap from object changes
-    const whitelistId = extractObjectId(result.objectChanges, 'SealWhitelist');
-    const adminCapId = extractObjectId(result.objectChanges, 'WhitelistAdminCap');
-
-    if (!whitelistId) {
-      throw new Error('Failed to extract whitelist ID from transaction');
-    }
 
     return {
       success: true,
@@ -101,8 +98,6 @@ export async function addDoctorWithWallet({
   try {
     // Create transaction to call contract directly
     const tx = new Transaction();
-    console.log('Adding doctor to whitelist:', { whitelistId, doctor, whitelistCapId });
-
     // Call add_doctor function on contract
     tx.moveCall({
       target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::add_doctor`,
@@ -180,7 +175,6 @@ export async function removeDoctorWithWallet({
   try {
     // Create transaction to call contract directly
     const tx = new Transaction();
-    console.log('Removing doctor from whitelist:', { whitelistId, doctor, whitelistCapId });
     // Call remove_doctor function on contract
     tx.moveCall({
       target: `${MEDICAL_VAULT_PACKAGE_ID}::seal_whitelist::remove_doctor`,

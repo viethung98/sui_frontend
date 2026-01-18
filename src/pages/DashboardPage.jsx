@@ -1,104 +1,114 @@
-import { useCurrentAccount } from '@mysten/dapp-kit'
-import { Activity, AlertCircle, Calendar, FileText, Folder, Loader2, Plus, Settings, Shield, Trash2, UserPlus, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import AddPermissionModal from '../components/AddPermissionModal'
-import CreateWhitelistModal from '../components/CreateWhitelistModal'
-import RemovePermissionModal from '../components/RemovePermissionModal'
-import api from '../services/api'
+import { useCurrentAccount } from '@mysten/dapp-kit';
+import {
+  Activity,
+  AlertCircle,
+  Calendar,
+  FileText,
+  Folder,
+  Loader2,
+  Plus,
+  Settings,
+  Shield,
+  Trash2,
+  UserPlus,
+  Users,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import AddPermissionModal from '../components/AddPermissionModal';
+import CreateWhitelistModal from '../components/CreateWhitelistModal';
+import RemovePermissionModal from '../components/RemovePermissionModal';
+import api from '../services/api';
 
 export default function DashboardPage() {
-  const currentAccount = useCurrentAccount()
-  const [whitelists, setWhitelists] = useState([])
-  const [recentActions, setRecentActions] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [selectedWhitelist, setSelectedWhitelist] = useState(null)
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [addModalType, setAddModalType] = useState('doctor')
-  const [showRemoveModal, setShowRemoveModal] = useState(false)
-  const [removeTarget, setRemoveTarget] = useState({ address: '', type: 'doctor' })
+  const currentAccount = useCurrentAccount();
+  const [whitelists, setWhitelists] = useState([]);
+  const [recentActions, setRecentActions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedWhitelist, setSelectedWhitelist] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalType, setAddModalType] = useState('doctor');
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState({ address: '', type: 'doctor' });
 
   useEffect(() => {
     if (currentAccount?.address) {
-      loadDashboardData()
+      loadDashboardData();
     } else {
-      setLoading(false)
-      setWhitelists([])
-      setRecentActions([])
+      setLoading(false);
+      setWhitelists([]);
+      setRecentActions([]);
     }
-  }, [currentAccount])
+  }, [currentAccount]);
 
   const loadDashboardData = async () => {
     try {
-      setLoading(true)
-      setError(null)
-
-      console.log('Loading dashboard data for:', currentAccount.address)
+      setLoading(true);
+      setError(null);
 
       // Load whitelists
-      const whitelistsResponse = await api.getUserWhitelists(currentAccount.address)
-      console.log('Whitelists response:', whitelistsResponse)
-      setWhitelists(whitelistsResponse.whitelists || [])
+      const whitelistsResponse = await api.getUserWhitelists(currentAccount.address);
+      console.log('Whitelists response:', whitelistsResponse);
+      setWhitelists(whitelistsResponse.whitelists || []);
 
       // Load recent actions
       try {
-        const actionsResponse = await api.getUserActions(currentAccount.address, 1, 5)
-        setRecentActions(actionsResponse.actions || [])
+        const actionsResponse = await api.getUserActions(currentAccount.address, 1, 5);
+        setRecentActions(actionsResponse.actions || []);
       } catch (err) {
-        console.error('Failed to load actions:', err)
+        console.error('Failed to load actions:', err);
         // Don't fail the whole dashboard if actions fail
       }
-
     } catch (err) {
-      console.error('Failed to load dashboard data:', err)
-      setError(err.message)
+      console.error('Failed to load dashboard data:', err);
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleManageWhitelist = (whitelist) => {
-    setSelectedWhitelist(whitelist)
-  }
+    setSelectedWhitelist(whitelist);
+  };
 
   const handleAddPermission = (type) => {
-    setAddModalType(type)
-    setShowAddModal(true)
-  }
+    setAddModalType(type);
+    setShowAddModal(true);
+  };
 
   const handleRemovePermission = (address, type) => {
-    setRemoveTarget({ address, type })
-    setShowRemoveModal(true)
-  }
+    setRemoveTarget({ address, type });
+    setShowRemoveModal(true);
+  };
 
   // Calculate stats from actual data
   const stats = [
-    { 
-      label: 'Medical Folders', 
-      value: whitelists.length.toString(), 
-      icon: Folder, 
-      color: 'text-blue-600' 
+    {
+      label: 'Medical Folders',
+      value: whitelists.length.toString(),
+      icon: Folder,
+      color: 'text-blue-600',
     },
-    { 
-      label: 'My Owned', 
-      value: whitelists.filter(w => w.role === 0).length.toString(), 
-      icon: FileText, 
-      color: 'text-green-600' 
+    {
+      label: 'My Owned',
+      value: whitelists.filter((w) => w.role === 3).length.toString(),
+      icon: FileText,
+      color: 'text-green-600',
     },
-    { 
-      label: 'As Doctor', 
-      value: whitelists.filter(w => w.role === 1).length.toString(), 
-      icon: Calendar, 
-      color: 'text-purple-600' 
+    {
+      label: 'As Doctor',
+      value: whitelists.filter((w) => w.role == 0 || w.role === 1).length.toString(),
+      icon: Calendar,
+      color: 'text-purple-600',
     },
-    { 
-      label: 'As Member', 
-      value: whitelists.filter(w => w.role === 2).length.toString(), 
-      icon: Activity, 
-      color: 'text-orange-600' 
+    {
+      label: 'As Member',
+      value: whitelists.filter((w) => w.role === 2).length.toString(),
+      icon: Activity,
+      color: 'text-orange-600',
     },
-  ]
+  ];
 
   if (!currentAccount) {
     return (
@@ -115,7 +125,7 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
-    )
+    );
   }
 
   if (loading) {
@@ -126,7 +136,7 @@ export default function DashboardPage() {
           <p className="text-text-muted">Loading your dashboard...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -146,7 +156,7 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -172,7 +182,7 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => {
-          const Icon = stat.icon
+          const Icon = stat.icon;
           return (
             <div
               key={index}
@@ -188,7 +198,7 @@ export default function DashboardPage() {
               </p>
               <p className="text-sm text-text-muted">{stat.label}</p>
             </div>
-          )
+          );
         })}
       </div>
 
@@ -204,7 +214,9 @@ export default function DashboardPage() {
             <div className="p-12 text-center">
               <Folder className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-text-muted">No whitelists found</p>
-              <p className="text-sm text-text-muted mt-2">Create your first whitelist to get started</p>
+              <p className="text-sm text-text-muted mt-2">
+                Create your first whitelist to get started
+              </p>
             </div>
           ) : (
             whitelists.slice(0, 5).map((whitelist) => (
@@ -222,9 +234,12 @@ export default function DashboardPage() {
                         {whitelist.name || 'Unnamed Folder'}
                       </h3>
                       <div className="flex items-center space-x-4 text-sm text-text-muted mb-2">
-                        <span>Role: {['Owner', 'Doctor', 'Member'][whitelist.role] || 'Unknown'}</span>
+                        <span>
+                          Role:{' '}
+                          {['Owner', 'Doctor', 'Member', 'Patient'][whitelist.role] || 'Unknown'}
+                        </span>
                         <span>•</span>
-                        <span>{whitelist.doctors?.length || 0} doctors</span>
+                        <span>{whitelist.doctors?.length + 1 || 1} doctors</span>
                         <span>•</span>
                         <span>{whitelist.members?.length || 0} members</span>
                       </div>
@@ -291,12 +306,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )} */}
-      
+
       {/* Create Folder Modal */}
       {showCreateModal && (
         <CreateWhitelistModal
           onSuccess={() => {
-            loadDashboardData()
+            loadDashboardData();
           }}
           onClose={() => setShowCreateModal(false)}
         />
@@ -328,7 +343,8 @@ export default function DashboardPage() {
                     {selectedWhitelist.name || 'Unnamed Folder'}
                   </h3>
                   <p className="text-sm text-text-muted">
-                    {selectedWhitelist.doctors?.length || 0} doctors • {selectedWhitelist.members?.length || 0} members
+                    {selectedWhitelist.doctors?.length || 0} doctors •{' '}
+                    {selectedWhitelist.members?.length || 0} members
                   </p>
                 </div>
               </div>
@@ -436,17 +452,17 @@ export default function DashboardPage() {
 
             {/* Empty State */}
             {(!selectedWhitelist.doctors || selectedWhitelist.doctors.length === 0) &&
-             (!selectedWhitelist.members || selectedWhitelist.members.length === 0) && (
-              <div className="p-12 text-center">
-                <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-text-light dark:text-text-dark mb-2">
-                  No Permissions Yet
-                </h3>
-                <p className="text-text-muted">
-                  Add doctors or members to grant access to this folder
-                </p>
-              </div>
-            )}
+              (!selectedWhitelist.members || selectedWhitelist.members.length === 0) && (
+                <div className="p-12 text-center">
+                  <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-text-light dark:text-text-dark mb-2">
+                    No Permissions Yet
+                  </h3>
+                  <p className="text-text-muted">
+                    Add doctors or members to grant access to this folder
+                  </p>
+                </div>
+              )}
           </div>
         </div>
       )}
@@ -457,8 +473,8 @@ export default function DashboardPage() {
           whitelist={selectedWhitelist}
           type={addModalType}
           onSuccess={() => {
-            setShowAddModal(false)
-            loadDashboardData()
+            setShowAddModal(false);
+            loadDashboardData();
           }}
           onClose={() => setShowAddModal(false)}
         />
@@ -471,12 +487,12 @@ export default function DashboardPage() {
           type={removeTarget.type}
           address={removeTarget.address}
           onSuccess={() => {
-            setShowRemoveModal(false)
-            loadDashboardData()
+            setShowRemoveModal(false);
+            loadDashboardData();
           }}
           onClose={() => setShowRemoveModal(false)}
         />
       )}
     </div>
-  )
+  );
 }

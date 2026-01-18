@@ -1,54 +1,66 @@
-import { useCurrentAccount } from '@mysten/dapp-kit'
-import { Folder, Loader2, Plus, Shield, UserCheck, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import api from '../services/api'
-import { ROLE_NAMES } from '../utils/constants'
-import { formatRelativeTime } from '../utils/helpers'
+import { useCurrentAccount } from '@mysten/dapp-kit';
+import { Folder, Loader2, Plus, Shield, UserCheck, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import api from '../services/api';
+import { ROLE_NAMES } from '../utils/constants';
+import { formatRelativeTime } from '../utils/helpers';
 
 export default function UserWhitelists({ onSelectWhitelist }) {
-  const currentAccount = useCurrentAccount()
-  const [whitelists, setWhitelists] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const currentAccount = useCurrentAccount();
+  const [whitelists, setWhitelists] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     if (currentAccount?.address) {
-      loadWhitelists()
+      loadWhitelists();
     }
-  }, [currentAccount])
+  }, [currentAccount]);
 
   const loadWhitelists = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const response = await api.getUserWhitelists(currentAccount.address)
-      setWhitelists(response.whitelists || [])
+      setLoading(true);
+      setError(null);
+      const response = await api.getUserWhitelists(currentAccount.address);
+      setWhitelists(response.whitelists || []);
     } catch (err) {
-      console.error('Failed to load whitelists:', err)
-      setError(err.message)
+      console.error('Failed to load whitelists:', err);
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getRoleIcon = (role) => {
     switch (role) {
-      case 0: return <Shield className="w-4 h-4" />
-      case 1: return <UserCheck className="w-4 h-4" />
-      case 2: return <Users className="w-4 h-4" />
-      default: return null
+      case 0:
+        return <Shield className="w-4 h-4" />;
+      case 1:
+        return <UserCheck className="w-4 h-4" />;
+      case 2:
+        return <Users className="w-4 h-4" />;
+      case 3:
+        return <User className="w-4 h-4" />;
+      default:
+        return null;
     }
-  }
+  };
 
   const getRoleColor = (role) => {
     switch (role) {
-      case 0: return 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-primary-200 dark:border-primary-800'
-      case 1: return 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
-      case 2: return 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
-      default: return 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+      case 0:
+        return 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-primary-200 dark:border-primary-800';
+      case 1:
+        return 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+      case 2:
+        return 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800';
+      case 3:
+        return 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800';
+      default:
+        return 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
     }
-  }
+  };
 
   if (!currentAccount) {
     return (
@@ -56,7 +68,7 @@ export default function UserWhitelists({ onSelectWhitelist }) {
         <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
         <p className="text-text-muted">Connect wallet to view your whitelists</p>
       </div>
-    )
+    );
   }
 
   if (loading) {
@@ -65,7 +77,7 @@ export default function UserWhitelists({ onSelectWhitelist }) {
         <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto" />
         <p className="text-text-muted mt-4">Loading whitelists...</p>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -79,7 +91,7 @@ export default function UserWhitelists({ onSelectWhitelist }) {
           Retry
         </button>
       </div>
-    )
+    );
   }
 
   return (
@@ -127,11 +139,11 @@ export default function UserWhitelists({ onSelectWhitelist }) {
                   <div className="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 transition-colors duration-200">
                     <Folder className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   </div>
-                  <div className={`flex items-center space-x-1 px-2 py-1 rounded-md border ${getRoleColor(whitelist.role)}`}>
+                  <div
+                    className={`flex items-center space-x-1 px-2 py-1 rounded-md border ${getRoleColor(whitelist.role)}`}
+                  >
                     {getRoleIcon(whitelist.role)}
-                    <span className="text-xs font-medium">
-                      {ROLE_NAMES[whitelist.role]}
-                    </span>
+                    <span className="text-xs font-medium">{ROLE_NAMES[whitelist.role]}</span>
                   </div>
                 </div>
               </div>
@@ -164,5 +176,5 @@ export default function UserWhitelists({ onSelectWhitelist }) {
         </div>
       )}
     </div>
-  )
+  );
 }

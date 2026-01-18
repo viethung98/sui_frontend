@@ -145,9 +145,7 @@ export default function AIChatInterface({
 
       if (response.status === 402) {
         // Payment required - initiate payment based on protocol
-        const errorData = await response.json();
-        console.log('402 Payment Required:', errorData);
-        
+        const errorData = await response.json();        
         const protocol = errorData.protocol || paymentProtocol;
         
         // Initiate payment based on protocol
@@ -159,15 +157,7 @@ export default function AIChatInterface({
             if (!beepSessionId) {
               throw new Error('Beep session not initialized. Please try again or switch to x402 protocol.');
             }
-            
-            console.log('Initiating Beep payment:', {
-              sessionId: beepSessionId,
-              patientAddress,
-              endpoint: 'search_patient_record',
-              amount: errorData.estimatedCost,
-              currency: errorData.currency || 'USDC'
-            });
-            
+                        
             paymentResponse = await api.beepInitiatePayment(
               beepSessionId,
               patientAddress,
@@ -176,7 +166,6 @@ export default function AIChatInterface({
               errorData.currency || 'USDC'
             );
             
-            console.log('Beep payment response:', paymentResponse);
           } else {
             // X402 via direct Sui
             paymentResponse = await api.paymentInitiate(
